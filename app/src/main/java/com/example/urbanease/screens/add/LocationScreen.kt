@@ -99,7 +99,7 @@ fun LocationBox(
     selectedLocation: MutableState<String?>,
     onLocationSelected: (String) -> Unit
 ) {
-    val locations = listOf("Patia", "Khandagiri", "Ganga Nagar", "Nayapalli", "Jaydev Vihar")
+    val locations = listOf("Patia", "Khandagiri", "Ganga Nagar", "Siripur", "Jaydev Vihar")
 
     Column(
         modifier = Modifier
