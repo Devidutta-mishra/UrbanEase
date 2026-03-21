@@ -76,9 +76,9 @@ class PostAdViewModel @Inject constructor() : ViewModel() {
         selectedImages.forEach { uri ->
             val fileName = "images/${UUID.randomUUID()}.jpg"
             val ref = FirebaseStorage.getInstance().reference.child(fileName)
-            
+
             Log.d("FirebaseStorage", "Starting upload: $fileName")
-            
+
             ref.putFile(uri)
                 .addOnSuccessListener { _ ->
                     ref.downloadUrl.addOnSuccessListener { downloadUrl ->
@@ -109,17 +109,17 @@ class PostAdViewModel @Inject constructor() : ViewModel() {
             errorMessage.value = "User not authenticated"
             return
         }
-        
+
         val userId = currentUser.uid
         val houseId = UUID.randomUUID().toString()
-        
+
         isLoading.value = true
         errorMessage.value = null
-        
+
         uploadImages(
             onSuccess = { urls ->
                 val adWithDetails = ad.value.copy(
-                    ownerId = userId, 
+                    ownerId = userId,
                     houseId = houseId,
                     imageUrls = urls,
                     isApproved = false // Set default to false for admin approval
@@ -141,7 +141,8 @@ class PostAdViewModel @Inject constructor() : ViewModel() {
             },
             onFailure = { e ->
                 isLoading.value = false
-                errorMessage.value = "Storage Error: ${e.message}. Check if Firebase Storage is enabled."
+                errorMessage.value =
+                    "Storage Error: ${e.message}. Check if Firebase Storage is enabled."
                 Log.e("FirebaseStorage", "Upload images failed", e)
                 onFailure(e)
             }
