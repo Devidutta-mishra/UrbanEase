@@ -2,29 +2,12 @@ package com.example.urbanease.screens.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +33,9 @@ fun LoginScreen(
     viewModel: LoginScreenViewModel = viewModel()
 ) {
     val showLoginForm = rememberSaveable { mutableStateOf(true) }
+    // Accessing MutableState values directly from ViewModel
+    val loading = viewModel.loading.value
+    val error = viewModel.error.value
 
     Box(
         modifier = Modifier
@@ -79,33 +65,37 @@ fun LoginScreen(
                         style = MaterialTheme.typography.displayMedium,
                         color = Color.Black
                     )
-//                    Text(
-//                        text = if (showLoginForm.value) "Sign in to continue" else "Enter Valid Email and Password",
-//                        fontWeight = FontWeight.SemiBold,
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = Color.Black.copy(alpha = 0.25f)
-//                    )
                 }
 
                 Spacer(modifier = Modifier.height(35.dp))
 
+                error?.let {
+                    Text(
+                        text = it,
+                        color = Color.Red,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
                 if (showLoginForm.value) {
-                    UserForm(loading = false, isCreateAccount = false) { email, password, _ ->
+                    UserForm(loading = loading, isCreateAccount = false) { email, password, _ ->
                         viewModel.signInWithEmailAndPassword(email, password) { role ->
-                            if (role == "owner") {
-                                navController.navigate(UrbanScreens.OwnerScreen.name)
-                            } else {
-                                navController.navigate(UrbanScreens.BachelorScreen.name)
+                            when (role) {
+                                "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
+                                "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
+                                else -> navController.navigate(UrbanScreens.BachelorScreen.name)
                             }
                         }
                     }
                 } else {
-                    UserForm(loading = false, isCreateAccount = true) { email, password, role ->
+                    UserForm(loading = loading, isCreateAccount = true) { email, password, role ->
                         viewModel.createUserWithEmailAndPassword(email, password, role) {
-                            if (role == "owner") {
-                                navController.navigate(UrbanScreens.OwnerScreen.name)
-                            } else {
-                                navController.navigate(UrbanScreens.BachelorScreen.name)
+                            when (role) {
+                                "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
+                                "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
+                                else -> navController.navigate(UrbanScreens.BachelorScreen.name)
                             }
                         }
                     }
@@ -139,7 +129,6 @@ fun LoginScreen(
     }
 }
 
-//@Preview
 @Composable
 fun UserForm(
     loading: Boolean,
@@ -152,7 +141,7 @@ fun UserForm(
 
     val password = rememberSaveable { mutableStateOf("") }
 
-    val selectedRole = rememberSaveable { mutableStateOf("") }
+    val selectedRole = rememberSaveable { mutableStateOf("bachelor") }
 
     val passwordVisibility = rememberSaveable { mutableStateOf(false) }
     val passwordFocusRequest = remember { FocusRequester() }
@@ -162,7 +151,7 @@ fun UserForm(
     }
 
     val modifier = Modifier
-        .height(280.dp)
+        .height(350.dp)
         .background(Color.Transparent)
         .verticalScroll(rememberScrollState())
 
@@ -178,16 +167,16 @@ fun UserForm(
             ) {
                 Text("Role: ", modifier = Modifier.padding(end = 8.dp), color = Color.Black)
 
-                listOf("bachelor", "owner").forEach { role ->
+                listOf("bachelor", "owner", "admin").forEach { role ->
                     Text(
                         text = role.replaceFirstChar { it.uppercase() },
                         modifier = Modifier
                             .clickable {
-                                selectedRole.value = role
-                                println("Selected role: $role")
+                                if (!loading) selectedRole.value = role
                             }
                             .padding(horizontal = 8.dp),
-                        color = if (selectedRole.value == role) Color.Blue else Color.Gray
+                        color = if (selectedRole.value == role) Color.Blue else Color.Gray,
+                        fontWeight = if (selectedRole.value == role) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
@@ -247,20 +236,20 @@ fun SubmitButton(
             .fillMaxWidth(),
         enabled = !loading && validInputs,
         shape = CircleShape,
-        elevation = ButtonDefaults.buttonElevation( // Corrected here
-            defaultElevation = 1.dp, // Default elevation
-            pressedElevation = 12.dp, // Elevation when button is pressed
-            disabledElevation = 12.dp // No elevation when button is disabled
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 1.dp,
+            pressedElevation = 12.dp,
+            disabledElevation = 12.dp
         ),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFF7D3BDC),
             contentColor = Color.White,
-            disabledContainerColor = Color(0xFF7D3BDC),
+            disabledContainerColor = Color(0xFF7D3BDC).copy(alpha = 0.5f),
             disabledContentColor = Color.White
         ),
     ) {
         if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(25.dp))
+            CircularProgressIndicator(modifier = Modifier.size(25.dp), color = Color.White)
         } else {
             Text(text = textId, modifier = Modifier.padding(2.dp), fontSize = 16.sp)
         }

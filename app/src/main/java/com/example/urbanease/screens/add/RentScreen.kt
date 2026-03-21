@@ -1,6 +1,5 @@
 package com.example.urbanease.screens.add
 
-
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.annotation.SuppressLint
 import android.util.Log
@@ -34,7 +33,6 @@ import com.example.urbanease.components.InfoForm
 import com.example.urbanease.model.PostAdViewModel
 import com.example.urbanease.navigation.UrbanScreens
 
-
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun RentScreen(
@@ -46,8 +44,8 @@ fun RentScreen(
     val rentState = remember { mutableStateOf("") }
     val roomsState = remember { mutableStateOf("") }
     val bathroomsState = remember { mutableStateOf("") }
-    val FloorNoState = remember { mutableStateOf("") }
-    val FurnishingState = remember { mutableStateOf("") }
+    val floorNoState = remember { mutableStateOf("") }
+    val furnishingState = remember { mutableStateOf("") }
 
     val context = LocalContext.current
 
@@ -76,19 +74,20 @@ fun RentScreen(
                             rentState.value.isBlank() ||
                             roomsState.value.isBlank() ||
                             bathroomsState.value.isBlank() ||
-                            FloorNoState.value.isBlank() ||
+                            floorNoState.value.isBlank() ||
                             descriptionState.value.isBlank() ||
-                            FurnishingState.value.isBlank()
+                            furnishingState.value.isBlank()
                         ) {
                             Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
                         } else {
-                            viewModel.updateLocation(viewModel.ad.value.location)
                             viewModel.updateTitle(titleState.value)
                             viewModel.updateDescription(descriptionState.value)
                             viewModel.updateRent(rentState.value.toIntOrNull() ?: 0)
                             viewModel.updateRooms(roomsState.value.toIntOrNull() ?: 0)
                             viewModel.updateBathrooms(bathroomsState.value.toIntOrNull() ?: 0)
-                            Log.d("RentScreen", "Ad before posting: ${viewModel.ad.value}")
+                            viewModel.updateFloorNo(floorNoState.value)
+                            viewModel.updateFurnishing(furnishingState.value)
+                            
                             navController.navigate(UrbanScreens.PhotoScreen.name)
                         }
                     }
@@ -107,15 +106,15 @@ fun RentScreen(
                         fontSize = 17.sp,
                         color = Color.Black.copy(alpha = 0.7f),
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 18.dp,bottom = 8.dp)
+                        modifier = Modifier.padding(start = 18.dp, bottom = 8.dp)
                     )
                     InfoForm("Title", titleState)
                     InfoForm("Rent", rentState)
                     InfoForm("BHK", roomsState)
                     InfoForm("Bathrooms", bathroomsState)
-                    InfoForm("Floor No", FloorNoState)
+                    InfoForm("Floor No", floorNoState)
                     InfoForm("Description", descriptionState)
-                    InfoForm("Furnishing", FurnishingState)
+                    InfoForm("Furnishing", furnishingState)
                 }
             }
         }

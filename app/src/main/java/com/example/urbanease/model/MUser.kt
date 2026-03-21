@@ -1,11 +1,25 @@
 package com.example.urbanease.model
 
+import com.google.firebase.firestore.PropertyName
+
 data class MUser(
-    val id: String?,
-    val userId: String,
-    val displayName: String,
-    val avatarUrl: String,
-    val role: String,
+    @get:PropertyName("user_id")
+    @set:PropertyName("user_id")
+    var userId: String = "",
+
+    @get:PropertyName("display_name")
+    @set:PropertyName("display_name")
+    var displayName: String = "",
+
+    @get:PropertyName("avatar_url")
+    @set:PropertyName("avatar_url")
+    var avatarUrl: String = "",
+
+    @get:PropertyName("role")
+    @set:PropertyName("role")
+    var role: String = "",
+
+    var id: String? = null
 ){
     fun toMap(): MutableMap<String, Any> {
         return mutableMapOf(

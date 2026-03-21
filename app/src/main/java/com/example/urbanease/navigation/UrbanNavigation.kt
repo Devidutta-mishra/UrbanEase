@@ -4,14 +4,21 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.urbanease.data.PropertyAd
 import com.example.urbanease.model.PostAdViewModel
+import com.example.urbanease.screens.add.AdSummaryScreen
 import com.example.urbanease.screens.add.LocationScreen
 import com.example.urbanease.screens.add.PhotoScreen
 import com.example.urbanease.screens.add.RentScreen
+import com.example.urbanease.screens.details.DetailScreen
+import com.example.urbanease.screens.home.AdminHome
 import com.example.urbanease.screens.home.BachelorHome
 import com.example.urbanease.screens.home.HomeScreen
 import com.example.urbanease.screens.home.OwnerHome
@@ -32,9 +39,7 @@ fun UrbanNavigation() {
         composable(UrbanScreens.LoginScreen.name) {
             LoginScreen(navController = navController)
         }
-//        composable(UrbanScreens.CreateAccountScreen.name) {
-//            RegisterScreen(navController = navController)
-//        }
+
         composable(UrbanScreens.HomeScreen.name) {
             HomeScreen(navController = navController)
         }
@@ -45,6 +50,18 @@ fun UrbanNavigation() {
 
         composable(UrbanScreens.OwnerScreen.name) {
             OwnerHome(navController = navController)
+        }
+
+        composable(UrbanScreens.AdminScreen.name) {
+            AdminHome(navController = navController)
+        }
+
+        composable(
+            route = "${UrbanScreens.DetailScreen.name}/{adId}",
+            arguments = listOf(navArgument("adId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val adId = backStackEntry.arguments?.getString("adId")
+            DetailScreen(navController = navController, adId = adId)
         }
 
         navigation(
@@ -73,6 +90,14 @@ fun UrbanNavigation() {
                 }
                 val viewModel = hiltViewModel<PostAdViewModel>(parentEntry)
                 PhotoScreen(navController = navController, viewModel = viewModel)
+            }
+
+            composable(UrbanScreens.AdSummaryScreen.name) { navBackStackEntry ->
+                val parentEntry = remember(navController) {
+                    navController.getBackStackEntry("post_ad_graph")
+                }
+                val viewModel = hiltViewModel<PostAdViewModel>(parentEntry)
+                AdSummaryScreen(navController = navController, viewModel = viewModel)
             }
         }
     }

@@ -1,8 +1,5 @@
 package com.example.urbanease.navigation
 
-import com.example.urbanease.screens.add.LocationScreen
-import com.example.urbanease.screens.splash.SplashScreen
-
 enum class UrbanScreens {
     LoginScreen,
     SplashScreen,
@@ -10,12 +7,15 @@ enum class UrbanScreens {
     HomeScreen,
     BachelorScreen,
     OwnerScreen,
+    AdminScreen,
     SearchScreen,
     DetailScreen,
     UpdateScreen,
     RentScreen,
     PhotoScreen,
-    LocationScreen;
+    LocationScreen,
+    AdSummaryScreen,
+    OwnerBookingsScreen;
 
     companion object {
         fun fromRoute(route: String?) : UrbanScreens = when(route?.substringBefore("/")){
@@ -28,9 +28,12 @@ enum class UrbanScreens {
             UpdateScreen.name -> UpdateScreen
             BachelorScreen.name -> BachelorScreen
             OwnerScreen.name -> OwnerScreen
+            AdminScreen.name -> AdminScreen
             LocationScreen.name -> LocationScreen
             RentScreen.name -> RentScreen
             PhotoScreen.name -> PhotoScreen
+            AdSummaryScreen.name -> AdSummaryScreen
+            OwnerBookingsScreen.name -> OwnerBookingsScreen
             null -> HomeScreen
             else -> throw IllegalArgumentException("Route $route is not recognized")
         }

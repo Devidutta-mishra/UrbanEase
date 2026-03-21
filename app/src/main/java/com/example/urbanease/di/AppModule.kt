@@ -14,5 +14,4 @@ object AppModule {
     fun provideHouseRepository(): HouseRepository {
         return HouseRepository()
     }
-
 }

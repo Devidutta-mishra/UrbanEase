@@ -1,32 +1,66 @@
 package com.example.urbanease.screens.home
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import com.example.urbanease.model.House
+import com.example.urbanease.data.Booking
+import com.example.urbanease.data.PropertyAd
 import com.example.urbanease.repository.HouseRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 
 @HiltViewModel
 class OwnerHomeViewModel @Inject constructor(
-    private val houseRepository: HouseRepository
+    private val repository: HouseRepository
 ) : ViewModel() {
 
-    private val _uploadStatus = MutableLiveData<Boolean>()
-    val uploadStatus: LiveData<Boolean> = _uploadStatus
+    val ads = mutableStateOf<List<PropertyAd>>(emptyList())
+    val bookings = mutableStateOf<List<Booking>>(emptyList())
+    val isLoading = mutableStateOf(false)
+    private var adsListener: ListenerRegistration? = null
+    private var bookingsListener: ListenerRegistration? = null
 
-    fun uploadHouse(house: House) {
-        houseRepository.uploadHouse(house) { success ->
-            _uploadStatus.value = success
-        }
+    init {
+        loadData()
     }
 
-    val houses = MutableLiveData<List<House>>()
-
-    fun loadMyHouses(ownerId: String) {
-        houseRepository.getHousesForOwner(ownerId) {
-            houses.value = it
+    fun loadData() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        isLoading.value = true
+        
+        // Listen to Ads
+        adsListener?.remove()
+        adsListener = repository.listenToAdsForOwner(userId) { result ->
+            ads.value = result
+            isLoading.value = false
         }
+
+        // Listen to Bookings for this owner
+        bookingsListener?.remove()
+        bookingsListener = FirebaseFirestore.getInstance().collection("bookings")
+            .whereEqualTo("ownerId", userId)
+            .addSnapshotListener { snapshot, _ ->
+                bookings.value = snapshot?.toObjects(Booking::class.java) ?: emptyList()
+            }
+    }
+
+    fun approveBooking(booking: Booking) {
+        FirebaseFirestore.getInstance().collection("bookings")
+            .document(booking.bookingId)
+            .update("status", "approved")
+    }
+
+    fun rejectBooking(booking: Booking) {
+        FirebaseFirestore.getInstance().collection("bookings")
+            .document(booking.bookingId)
+            .update("status", "rejected")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        adsListener?.remove()
+        bookingsListener?.remove()
     }
 }

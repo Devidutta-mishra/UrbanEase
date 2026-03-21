@@ -3,38 +3,15 @@ package com.example.urbanease.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -56,7 +34,6 @@ import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.utils.Colors
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Locale
-
 
 @Composable
 fun PasswordInput(
@@ -84,12 +61,6 @@ fun PasswordInput(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 10.dp, start = 10.dp, end = 10.dp),
-//                .border(
-////                    0.dp,
-////                    Color.LightGray,
-//                    shape = RoundedCornerShape(8.dp)
-//                ), // Add light gray border
-//            elevation = CardDefaults.cardElevation(12.dp), // Apply only elevation here
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent)
         ) {
@@ -132,7 +103,7 @@ fun PasswordVisibility(passwordVisibility: MutableState<Boolean>) {
     IconButton(onClick = {
         passwordVisibility.value = !visible
     }) {
-        Icons.Default.Close
+        Icon(imageVector = Icons.Default.Close, contentDescription = "toggle visibility")
     }
 }
 
@@ -176,7 +147,7 @@ fun InputField(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp, start = 10.dp, end = 10.dp), // Moved padding here
+                .padding(bottom = 10.dp, start = 10.dp, end = 10.dp),
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent)
         ) {
@@ -187,7 +158,7 @@ fun InputField(
                 singleLine = isSingleLine,
                 textStyle = TextStyle(
                     fontSize = 19.sp,
-                    color = Color.Black // Set text color directly here
+                    color = Color.Black
                 ),
                 enabled = enabled,
                 keyboardOptions = KeyboardOptions(
@@ -216,215 +187,146 @@ fun InputField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Appbar(
-    title: String,
-    icon: ImageVector? = null,
-    showProfile: Boolean = true,
-    navController: NavController,
-    logout: Boolean = false,
-    topPadding: Dp = 18.dp,
-    onBackArrowClicked: () -> Unit = {}
+fun OwnerAppbar(
+    navController: NavController
 ) {
-    val email = FirebaseAuth.getInstance().currentUser?.email
-    val currentUserName = if (!email.isNullOrEmpty()) {
-        email.split("@")[0]
-            .uppercase(Locale.ROOT)
-    } else {
-        "User"
-    }
-    Column(modifier = Modifier) {
-        TopAppBar(
+    Column(modifier = Modifier.background(Color.White)) {
+        Row(
             modifier = Modifier
-                .height(70.dp)
-                .offset(y = (-20).dp),
-            title = {
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
                 Text(
-                    text = title,
-                    color = Colors.TextPrimary,
-                    style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 25.sp),
-                    modifier = Modifier.padding(top = 1.dp)
+                    text = "UrbanEase",
+                    style = TextStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = Color(0xFF1A1C1E)
+                    )
                 )
-            },
-            navigationIcon = {
-                if (icon != null) {
-                    IconButton(onClick = { onBackArrowClicked.invoke() }) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Back",
-                            tint = Color.Black
-                        )
-                    }
+                Text(
+                    text = "Manage your properties",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { /* Notification */ }) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color(0xFF42474E)
+                    )
                 }
-            },
-            actions = {
-                if (showProfile) {
-                    var expanded by remember { mutableStateOf(false) }
-                    IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Accountbox",
-                            modifier = Modifier.size(35.dp),
-                            tint = Color.Black.copy(alpha = 0.75f)
-                        )
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Profile") },
-                                onClick = {
-                                    expanded = false
-                                    navController.navigate(UrbanScreens.DetailScreen.name)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Logout") },
-                                onClick = {
-                                    expanded = false
-                                    FirebaseAuth.getInstance().signOut()
-                                    navController.navigate(UrbanScreens.LoginScreen.name)
-                                }
-                            )
-                        }
+                IconButton(onClick = {
+                    FirebaseAuth.getInstance().signOut()
+                    navController.navigate(UrbanScreens.LoginScreen.name) {
+                        popUpTo(0)
                     }
-                } else if (logout) {
-                    IconButton(onClick = {
-                        FirebaseAuth.getInstance().signOut().run {
-                            navController.navigate(UrbanScreens.LoginScreen.name)
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Person,
-                            contentDescription = "logout"
-                        )
-                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = Color(0xFF42474E)
+                    )
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent
-            )
-        )
-        //        HorizontalDivider(modifier = Modifier, thickness = 0.5.dp, color = Color.LightGray)
+            }
+        }
+        HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.5f))
     }
 }
 
-
 @Composable
-fun BottomNavigationBar(
-    onMyAdsClick: () -> Unit,
+fun OwnerBottomNavigationBar(
+    onHomeClick: () -> Unit,
     onAddClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    myAdsSelected: Boolean = false,
-    addSelected: Boolean = false,
-    settingsSelected: Boolean = false
+    currentScreen: String
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .height(80.dp)
+            .background(Color.White)
     ) {
-        BottomAppBar(
+        HorizontalDivider(
+            modifier = Modifier.align(Alignment.TopCenter),
+            thickness = 0.5.dp,
+            color = Color.LightGray.copy(alpha = 0.5f)
+        )
+        Row(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.White,
-            tonalElevation = 4.dp
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
         ) {
-            IconButton(
-                onClick = onAddClick,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(0.dp)
+                    .clickable { onHomeClick() }
+                    .padding(8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Home,
-                    contentDescription = "Add",
-                    tint = if (addSelected) Color.Blue else Color.Black,
-                    modifier = Modifier
-                        .padding(8.dp)
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = if (currentScreen == "Home") Color(0xFF006494) else Color(0xFF42474E)
+                )
+                Text(
+                    text = "Home",
+                    fontSize = 12.sp,
+                    color = if (currentScreen == "Home") Color(0xFF006494) else Color(0xFF42474E)
                 )
             }
 
-            IconButton(
-                onClick = onAddClick,
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(0.dp)
+                    .offset(y = (-20).dp)
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF38B6FF))
+                    .clickable { onAddClick() },
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .border(
-                            2.dp,
-                            if (addSelected) Colors.Primary else Colors.TextSecondary,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add",
-                        tint = if (addSelected) Color.Blue else Colors.TextPrimary,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .align(Alignment.Center)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Property",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
             }
 
-            IconButton(
-                onClick = onAddClick,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(0.dp)
+                    .clickable { onSettingsClick() }
+                    .padding(8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
-                    contentDescription = "Add",
-                    tint = if (addSelected) Color.Blue else Colors.TextPrimary,
-                    modifier = Modifier
-                        .padding(8.dp)
+                    contentDescription = "Settings",
+                    tint = if (currentScreen == "Settings") Color(0xFF006494) else Color(0xFF42474E)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .height(100.dp)
-    ) {
-        BottomAppBar(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = Color.White,
-            tonalElevation = 4.dp
-        ) {
-            TextButton(
-                onClick = onClick,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(color = Color.White)
-                    .border(
-                        width = 2.dp,
-                        color = Color.Black.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-            ) {
                 Text(
-                    text = ">",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    text = "Settings",
+                    fontSize = 12.sp,
+                    color = if (currentScreen == "Settings") Color(0xFF006494) else Color(0xFF42474E)
                 )
             }
         }
+        Text(
+            text = "Add Property",
+            fontSize = 12.sp,
+            color = Color(0xFF42474E),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp)
+        )
     }
 }
-
 
 @Composable
 fun InfoForm(
@@ -439,4 +341,69 @@ fun InfoForm(
         isSingleLine = true,
         valueState = titleState
     )
+}
+
+@Composable
+fun BottomButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .height(60.dp)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier.fillMaxSize(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Text(
+                text = ">",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Appbar(
+    title: String,
+    icon: ImageVector? = null,
+    showProfile: Boolean = true,
+    navController: NavController,
+    logout: Boolean = false,
+    topPadding: Dp = 18.dp,
+    onBackArrowClicked: () -> Unit = {}
+) {
+    TopAppBar(
+        title = { Text(text = title, fontWeight = FontWeight.Bold) },
+        navigationIcon = {
+            if (icon != null) {
+                IconButton(onClick = { onBackArrowClicked() }) {
+                    Icon(imageVector = icon, contentDescription = "Back")
+                }
+            }
+        },
+        actions = {
+            if (showProfile) {
+                IconButton(onClick = { /* Profile */ }) {
+                    Icon(imageVector = Icons.Default.Person, contentDescription = "Profile")
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun BottomNavigationBar(
+    onMyAdsClick: () -> Unit,
+    onAddClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    myAdsSelected: Boolean = false
+) {
+    // Kept for backward compatibility if needed, but OwnerBottomNavigationBar is preferred for new design
 }
