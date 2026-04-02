@@ -1,14 +1,13 @@
 package com.example.urbanease.navigation
 
-import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.urbanease.model.PostAdViewModel
 import com.example.urbanease.screens.add.AdSummaryScreen
@@ -23,13 +22,12 @@ import com.example.urbanease.screens.home.OwnerHome
 import com.example.urbanease.screens.login.LoginScreen
 import com.example.urbanease.screens.splash.SplashScreen
 
-
-@SuppressLint("UnrememberedGetBackStackEntry")
 @Composable
-fun UrbanNavigation() {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = UrbanScreens.SplashScreen.name) {
-
+fun UrbanNavigation(navController: NavHostController) {
+    NavHost(
+        navController = navController,
+        startDestination = UrbanScreens.SplashScreen.name
+    ) {
         composable(UrbanScreens.SplashScreen.name) {
             SplashScreen(navController = navController)
         }
@@ -55,11 +53,11 @@ fun UrbanNavigation() {
         }
 
         composable(
-            route = "${UrbanScreens.DetailScreen.name}/{adId}",
-            arguments = listOf(navArgument("adId") { type = NavType.StringType })
+            route = "${UrbanScreens.DetailScreen.name}/{houseId}",
+            arguments = listOf(navArgument("houseId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val adId = backStackEntry.arguments?.getString("adId")
-            DetailScreen(navController = navController, adId = adId)
+            val houseId = backStackEntry.arguments?.getString("houseId") ?: ""
+            DetailScreen(navController = navController, houseId = houseId)
         }
 
         navigation(

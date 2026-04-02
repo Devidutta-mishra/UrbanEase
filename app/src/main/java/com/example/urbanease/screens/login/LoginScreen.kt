@@ -1,30 +1,39 @@
 package com.example.urbanease.screens.login
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.urbanease.components.PasswordInput
-import com.example.urbanease.components.emailInput
+import com.example.urbanease.R
 import com.example.urbanease.navigation.UrbanScreens
 
 @Composable
@@ -33,225 +42,459 @@ fun LoginScreen(
     viewModel: LoginScreenViewModel = viewModel()
 ) {
     val showLoginForm = rememberSaveable { mutableStateOf(true) }
-    // Accessing MutableState values directly from ViewModel
     val loading = viewModel.loading.value
     val error = viewModel.error.value
 
-    Box(
+    if (showLoginForm.value) {
+        LoginContent(
+            loading = loading,
+            error = error,
+            onSignIn = { email, password ->
+                viewModel.signInWithEmailAndPassword(email, password) { role ->
+                    when (role) {
+                        "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
+                        "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
+                        else -> navController.navigate(UrbanScreens.BachelorScreen.name)
+                    }
+                }
+            },
+            onNavigateToSignup = { showLoginForm.value = false }
+        )
+    } else {
+        CreateAccountContent(
+            loading = loading,
+            error = error,
+            onBack = { showLoginForm.value = true },
+            onSignUp = { email, password, role ->
+                viewModel.createUserWithEmailAndPassword(email, password, role) {
+                    when (role) {
+                        "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
+                        "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
+                        else -> navController.navigate(UrbanScreens.BachelorScreen.name)
+                    }
+                }
+            },
+            onNavigateToLogin = { showLoginForm.value = true }
+        )
+    }
+}
+
+@Composable
+fun LoginContent(
+    loading: Boolean,
+    error: String?,
+    onSignIn: (String, String) -> Unit,
+    onNavigateToSignup: () -> Unit
+) {
+    val emailState = rememberSaveable { mutableStateOf("") }
+    val passwordState = rememberSaveable { mutableStateOf("") }
+    val passwordVisible = rememberSaveable { mutableStateOf(false) }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFE8F1F2), Color.White)
+                )
+            )
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White
+        Spacer(modifier = Modifier.height(40.dp))
+        
+        // Logo
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = Color(0xFF245D69)
+            )
+            Text(
+                text = "UrbanEase",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF245D69)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(80.dp))
+
+        Text(
+            text = "Welcome Back",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+        Text(
+            text = "Access your curated urban sanctuary.",
+            fontSize = 16.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Email Field
+        CustomInputField(
+            label = "EMAIL ADDRESS",
+            valueState = emailState,
+            placeholder = "name@example.com",
+            icon = Icons.Default.Email
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Password Field
+        CustomInputField(
+            label = "PASSWORD",
+            valueState = passwordState,
+            placeholder = "********",
+            icon = Icons.Default.Lock,
+            isPassword = true,
+            passwordVisible = passwordVisible.value,
+            onPasswordToggle = { passwordVisible.value = !passwordVisible.value },
+            trailingText = "Forgot Password?"
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        if (error != null) {
+            Text(text = error, color = Color.Red, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Button(
+            onClick = { onSignIn(emailState.value, passwordState.value) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF245D69)),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !loading && emailState.value.isNotEmpty() && passwordState.value.isNotEmpty()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 15.dp, end = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            if (loading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Sign In", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
+            Text(
+                text = "Or continue with",
+                modifier = Modifier.padding(horizontal = 16.dp),
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            SocialButton(text = "Google", icon = R.drawable.ic_launcher_foreground, modifier = Modifier.weight(1f)) 
+            SocialButton(text = "Facebook", icon = R.drawable.ic_launcher_foreground, modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        Row {
+            Text(text = "Don't have an account? ", color = Color.Gray)
+            Text(
+                text = "Create Account",
+                color = Color(0xFF245D69),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable { onNavigateToSignup() }
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Text(
+            text = "© 2024 URBANEASE PROPERTY SOLUTIONS",
+            fontSize = 10.sp,
+            color = Color.LightGray,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+    }
+}
+
+@Composable
+fun CreateAccountContent(
+    loading: Boolean,
+    error: String?,
+    onBack: () -> Unit,
+    onSignUp: (String, String, String) -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
+    val nameState = rememberSaveable { mutableStateOf("") }
+    val emailState = rememberSaveable { mutableStateOf("") }
+    val phoneState = rememberSaveable { mutableStateOf("") }
+    val passwordState = rememberSaveable { mutableStateOf("") }
+    val selectedRole = rememberSaveable { mutableStateOf("bachelor") }
+    val termsAccepted = rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(20.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF245D69))
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "UrbanEase",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF245D69)
+            )
+            Spacer(modifier = Modifier.width(48.dp))
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        Text(
+            text = "Create Account",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+        Text(
+            text = "Join the community of modern urban living.",
+            fontSize = 16.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "SELECT YOUR ROLE",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF245D69)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("Bachelor", "Admin", "Owner").forEach { role ->
+                val isSelected = selectedRole.value.equals(role, ignoreCase = true)
+                Surface(
+                    onClick = { selectedRole.value = role.lowercase() },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) Color(0xFF245D69) else Color(0xFFF2F2F2),
+                    modifier = Modifier.height(40.dp)
                 ) {
-                    Text(
-                        text = "UrbanEase",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.displayMedium,
-                        color = Color.Black
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(35.dp))
-
-                error?.let {
-                    Text(
-                        text = it,
-                        color = Color.Red,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-
-                if (showLoginForm.value) {
-                    UserForm(loading = loading, isCreateAccount = false) { email, password, _ ->
-                        viewModel.signInWithEmailAndPassword(email, password) { role ->
-                            when (role) {
-                                "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
-                                "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
-                                else -> navController.navigate(UrbanScreens.BachelorScreen.name)
-                            }
-                        }
-                    }
-                } else {
-                    UserForm(loading = loading, isCreateAccount = true) { email, password, role ->
-                        viewModel.createUserWithEmailAndPassword(email, password, role) {
-                            when (role) {
-                                "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
-                                "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
-                                else -> navController.navigate(UrbanScreens.BachelorScreen.name)
-                            }
-                        }
+                    Box(modifier = Modifier.padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = role,
+                            color = if (isSelected) Color.White else Color.Black,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
         }
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-            Row(
-                modifier = Modifier.padding(10.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val text1 = if (showLoginForm.value) "New User?" else "Existing User?"
-                val text2 = if (showLoginForm.value) "Sign up" else "Login"
-                Text(
-                    text1,
-                    modifier = Modifier,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        CustomInputField(label = "FULL NAME", valueState = nameState, placeholder = "Enter your full name", icon = Icons.Default.Person)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomInputField(label = "EMAIL ADDRESS", valueState = emailState, placeholder = "name@example.com", icon = Icons.Default.Email)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomInputField(label = "PHONE NUMBER", valueState = phoneState, placeholder = "+1 (555) 000-0000", icon = Icons.Default.Phone)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomInputField(label = "PASSWORD", valueState = passwordState, placeholder = "********", icon = Icons.Default.Lock, isPassword = true)
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = termsAccepted.value,
+                onCheckedChange = { termsAccepted.value = it },
+                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF245D69))
+            )
+            Text(
+                text = "By creating an account, you agree to our Terms of Service and Privacy Policy.",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                lineHeight = 18.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        if (error != null) {
+            Text(text = error, color = Color.Red, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Button(
+            onClick = { onSignUp(emailState.value, passwordState.value, selectedRole.value) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF245D69)),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !loading && termsAccepted.value && emailState.value.isNotEmpty() && passwordState.value.isNotEmpty()
+        ) {
+            if (loading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(text = "Already have an account? ", color = Color.Gray)
+            Text(
+                text = "Sign In",
+                color = Color(0xFF245D69),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable { onNavigateToLogin() }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+        
+        // Quote Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
+        ) {
+            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                Image(
+                    painter = painterResource(id = R.drawable.istockphoto_856794670_612x612), 
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.6f
                 )
                 Text(
-                    text2, modifier = Modifier
-                        .clickable {
-                            showLoginForm.value = !showLoginForm.value
-                        }
-                        .padding(start = 5.dp),
+                    text = "\"Finding a sanctuary in the city has never been this effortless.\"",
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Red)
+                    color = Color(0xFF1A1D52)
+                )
             }
         }
+        
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
 @Composable
-fun UserForm(
-    loading: Boolean,
-    isCreateAccount: Boolean,
-    onDone: (String, String, String) -> Unit = { email, pwd, role -> }
+fun CustomInputField(
+    label: String,
+    valueState: MutableState<String>,
+    placeholder: String,
+    icon: ImageVector,
+    isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onPasswordToggle: () -> Unit = {},
+    trailingText: String? = null
 ) {
-    val email = rememberSaveable {
-        mutableStateOf("")
-    }
-
-    val password = rememberSaveable { mutableStateOf("") }
-
-    val selectedRole = rememberSaveable { mutableStateOf("bachelor") }
-
-    val passwordVisibility = rememberSaveable { mutableStateOf(false) }
-    val passwordFocusRequest = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val valid = remember(email.value, password.value) {
-        email.value.trim().isNotEmpty() && password.value.trim().isNotEmpty()
-    }
-
-    val modifier = Modifier
-        .height(350.dp)
-        .background(Color.Transparent)
-        .verticalScroll(rememberScrollState())
-
-
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        if (isCreateAccount) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 10.dp)
-            ) {
-                Text("Role: ", modifier = Modifier.padding(end = 8.dp), color = Color.Black)
-
-                listOf("bachelor", "owner", "admin").forEach { role ->
-                    Text(
-                        text = role.replaceFirstChar { it.uppercase() },
-                        modifier = Modifier
-                            .clickable {
-                                if (!loading) selectedRole.value = role
-                            }
-                            .padding(horizontal = 8.dp),
-                        color = if (selectedRole.value == role) Color.Blue else Color.Gray,
-                        fontWeight = if (selectedRole.value == role) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            }
-        }
-
-        emailInput(
-            emailState = email,
-            enabled = !loading,
-            labelId = "Enter your email",
-            onAction = KeyboardActions { passwordFocusRequest.requestFocus() }
-        )
-
-        PasswordInput(
-            modifier = Modifier.focusRequester(passwordFocusRequest),
-            passwordState = password,
-            labelId = "Password",
-            enabled = !loading,
-            passwordVisibility = passwordVisibility,
-            onAction = KeyboardActions {
-                keyboardController?.hide()
-                if (!valid) return@KeyboardActions
-                onDone(email.value.trim(), password.value.trim(), if (isCreateAccount) selectedRole.value.lowercase() else "")
-            }
-        )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .padding(horizontal = 10.dp, vertical = 15.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SubmitButton(
-                textId = if (isCreateAccount) "SIGN UP" else "LOGIN ->",
-                loading = loading,
-                validInputs = valid
-            ) {
-                onDone(email.value.trim(), password.value.trim(), if (isCreateAccount) selectedRole.value.lowercase() else "")
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray
+            )
+            if (trailingText != null) {
+                Text(
+                    text = trailingText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF245D69),
+                    modifier = Modifier.clickable { /* Handle forgot password */ }
+                )
             }
         }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        OutlinedTextField(
+            value = valueState.value,
+            onValueChange = { valueState.value = it },
+            placeholder = { Text(text = placeholder, color = Color.LightGray) },
+            leadingIcon = { Icon(icon, contentDescription = null, tint = Color.LightGray) },
+            trailingIcon = if (isPassword) {
+                {
+                    IconButton(onClick = onPasswordToggle) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.Close else Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color.LightGray
+                        )
+                    }
+                }
+            } else null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF245D69),
+                unfocusedBorderColor = Color(0xFFEEEEEE),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            ),
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+                imeAction = ImeAction.Next
+            )
+        )
     }
 }
 
 @Composable
-fun SubmitButton(
-    textId: String,
-    loading: Boolean,
-    validInputs: Boolean,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .padding(3.dp)
-            .height(55.dp)
-            .fillMaxWidth(),
-        enabled = !loading && validInputs,
-        shape = CircleShape,
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 1.dp,
-            pressedElevation = 12.dp,
-            disabledElevation = 12.dp
-        ),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF7D3BDC),
-            contentColor = Color.White,
-            disabledContainerColor = Color(0xFF7D3BDC).copy(alpha = 0.5f),
-            disabledContentColor = Color.White
-        ),
+fun SocialButton(text: String, icon: Int, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = { /* Handle Social Login */ },
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black)
     ) {
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(25.dp), color = Color.White)
-        } else {
-            Text(text = textId, modifier = Modifier.padding(2.dp), fontSize = 16.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = Color.Unspecified
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
     }
 }

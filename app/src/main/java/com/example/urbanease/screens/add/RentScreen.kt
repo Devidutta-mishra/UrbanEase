@@ -1,8 +1,6 @@
 package com.example.urbanease.screens.add
 
-import androidx.hilt.navigation.compose.hiltViewModel
 import android.annotation.SuppressLint
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -26,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.urbanease.components.Appbar
 import com.example.urbanease.components.BottomButton

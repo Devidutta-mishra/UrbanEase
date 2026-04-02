@@ -1,46 +1,29 @@
 package com.example.urbanease.screens.home
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,90 +44,111 @@ fun BachelorHome(
 ) {
     val ads = viewModel.ads.value
     val isLoading = viewModel.isLoading.value
+    var selectedFilter by remember { mutableStateOf("Location") }
 
     LaunchedEffect(Unit) {
         viewModel.loadApprovedAds()
     }
 
     Scaffold(
-        topBar = {
-            Surface(shadowElevation = 1.dp) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
-                        .padding(horizontal = 20.dp, vertical = 15.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "UrbanEase",
-                            style = TextStyle(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp,
-                                color = Color(0xFF1A1C1E)
-                            )
-                        )
-                        Text(
-                            text = "Find your next home",
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { /* Notification */ }) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color(0xFF42474E)
-                            )
-                        }
-                        IconButton(onClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            navController.navigate(UrbanScreens.LoginScreen.name) {
-                                popUpTo(0)
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Logout",
-                                tint = Color(0xFF42474E)
-                            )
-                        }
-                    }
-                }
-            }
+        bottomBar = {
+            BottomNavigationBar()
         },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = Color.White
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color(0xFF38B6FF)
-                )
-            } else if (ads.isEmpty()) {
-                Text(
-                    text = "No properties found.",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+            // Search Bar Area
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = Color(0xFF2C3E50),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "UrbanEase",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A1D52)
+                    )
+                }
+
+                // Profile / Logout Button
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFF2F2F2))
+                        .clickable {
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate(UrbanScreens.LoginScreen.name) {
+                                popUpTo(0)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(ads) { ad ->
-                        BachelorPropertyCard(ad) {
-                            navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.houseId}")
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "Logout",
+                        tint = Color(0xFFBDC3C7),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+
+            // Filter Chips
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val filters = listOf("Location", "Rent Range", "Rooms")
+                items(filters) { filter ->
+                    FilterChip(
+                        text = filter,
+                        isSelected = selectedFilter == filter,
+                        onClick = { selectedFilter = filter }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Main Content
+            Box(modifier = Modifier.weight(1f)) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color(0xFF245D69)
+                    )
+                } else if (ads.isEmpty()) {
+                    Text(
+                        text = "No properties found.",
+                        modifier = Modifier.align(Alignment.Center),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(32.dp)
+                    ) {
+                        items(ads) { ad ->
+                            BachelorPropertyCard(ad) {
+                                navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.houseId}")
+                            }
                         }
                     }
                 }
@@ -154,76 +158,217 @@ fun BachelorHome(
 }
 
 @Composable
+fun FilterChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        color = if (isSelected) Color(0xFF245D69) else Color(0xFFF2F2F2),
+        border = if (isSelected) null else BorderStroke(1.dp, Color(0xFFE0E0E0))
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                color = if (isSelected) Color.White else Color(0xFF2C3E50),
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
 fun BachelorPropertyCard(ad: PropertyAd, onClick: () -> Unit) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 24.dp)
+            .clickable { onClick() }
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp)
+                .clip(RoundedCornerShape(32.dp))
+        ) {
+            Image(
+                painter = if (ad.imageUrls.isNotEmpty()) rememberAsyncImagePainter(ad.imageUrls.first()) 
+                          else painterResource(id = R.drawable.istockphoto_856794670_612x612),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Heart Icon
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
+                    .padding(16.dp)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.9f))
+                    .align(Alignment.TopEnd),
+                contentAlignment = Alignment.Center
             ) {
-                if (ad.imageUrls.isNotEmpty()) {
-                    Image(
-                        painter = rememberAsyncImagePainter(ad.imageUrls.first()),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.istockphoto_856794670_612x612),
-                        contentDescription = "Default Image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = Color(0xFF245D69),
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
-            Column(
+            // New Listing Tag
+            Surface(
                 modifier = Modifier
                     .padding(20.dp)
+                    .align(Alignment.BottomStart),
+                color = Color(0xFF8D5524),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "${ad.rooms}BHK Apartment",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1C1E)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Location",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${ad.location}, Odisha",
-                        fontSize = 16.sp,
-                        color = Color(0xFF74777F)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "₹${String.format(Locale.getDefault(), "%,d", ad.rent)}/month",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF006874)
+                    text = "NEW LISTING",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = ad.title,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2C3E50)
+            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "₹${String.format(Locale.getDefault(), "%,d", ad.rent)}",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF245D69)
+                )
+                Text(
+                    text = "/mo",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = Color.Gray,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = ad.location,
+                fontSize = 16.sp,
+                color = Color.Gray
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            InfoBadge(Icons.Default.Home, "${ad.rooms}")
+            InfoBadge(Icons.Default.Info, "${ad.bathrooms}") 
+            InfoBadge(Icons.Default.Build, "1,850")
+        }
+    }
+}
+
+@Composable
+fun InfoBadge(icon: ImageVector, text: String) {
+    Surface(
+        color = Color(0xFFF2F2F2),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFF245D69),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2C3E50)
+            )
+        }
+    }
+}
+
+@Composable
+fun BottomNavigationBar() {
+    NavigationBar(
+        containerColor = Color.White,
+        tonalElevation = 12.dp
+    ) {
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+            label = { Text("HOME") },
+            selected = true,
+            onClick = { },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color(0xFF245D69),
+                selectedTextColor = Color(0xFF245D69),
+                unselectedIconColor = Color(0xFFBDC3C7),
+                unselectedTextColor = Color(0xFFBDC3C7),
+                indicatorColor = Color(0xFFE0F2F1)
+            )
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.DateRange, contentDescription = "Bookings") },
+            label = { Text("BOOKINGS") },
+            selected = false,
+            onClick = { },
+            colors = NavigationBarItemDefaults.colors(
+                unselectedIconColor = Color(0xFFBDC3C7),
+                unselectedTextColor = Color(0xFFBDC3C7)
+            )
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Dashboard") },
+            label = { Text("DASHBOARD") },
+            selected = false,
+            onClick = { },
+             colors = NavigationBarItemDefaults.colors(
+                unselectedIconColor = Color(0xFFBDC3C7),
+                unselectedTextColor = Color(0xFFBDC3C7)
+            )
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+            label = { Text("PROFILE") },
+            selected = false,
+            onClick = { },
+             colors = NavigationBarItemDefaults.colors(
+                unselectedIconColor = Color(0xFFBDC3C7),
+                unselectedTextColor = Color(0xFFBDC3C7)
+            )
+        )
     }
 }

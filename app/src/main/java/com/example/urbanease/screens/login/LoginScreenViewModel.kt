@@ -4,14 +4,12 @@ import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.urbanease.model.MUser
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 
 class LoginScreenViewModel : ViewModel() {
     val loadingState = MutableStateFlow(LoadingState.IDLE)
@@ -31,10 +29,10 @@ class LoginScreenViewModel : ViewModel() {
         home: () -> Unit
     ) {
         if (loading.value) return
-        
+
         loading.value = true
         error.value = null
-        
+
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -73,10 +71,10 @@ class LoginScreenViewModel : ViewModel() {
 
     fun signInWithEmailAndPassword(email: String, password: String, home: (String) -> Unit) {
         if (loading.value) return
-        
+
         loading.value = true
         error.value = null
-        
+
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {

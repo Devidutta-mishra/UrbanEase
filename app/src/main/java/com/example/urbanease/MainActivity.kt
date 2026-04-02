@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import com.example.urbanease.navigation.UrbanNavigation
 import com.example.urbanease.ui.theme.UrbanEaseTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -31,12 +32,13 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun UrbanEase() {
+    val navController = rememberNavController()
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            UrbanNavigation()
+            UrbanNavigation(navController = navController)
         }
     }
 }

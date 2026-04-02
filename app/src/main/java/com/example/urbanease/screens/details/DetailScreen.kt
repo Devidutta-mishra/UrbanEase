@@ -1,20 +1,10 @@
 package com.example.urbanease.screens.details
 
 import android.annotation.SuppressLint
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,23 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,37 +36,36 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun DetailScreen(navController: NavController, adId: String?) {
+fun DetailScreen(navController: NavController, houseId: String) {
     val context = LocalContext.current
-
     var ad by remember { mutableStateOf<PropertyAd?>(null) }
-    var isLoadingAd by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isBooking by remember { mutableStateOf(false) }
 
-    LaunchedEffect(adId) {
-        if (adId != null) {
-            FirebaseFirestore.getInstance()
-                .collection("ads")
-                .document(adId)
-                .get()
-                .addOnSuccessListener { document ->
-                    ad = document.toObject(PropertyAd::class.java)
-                    isLoadingAd = false
-                }
-                .addOnFailureListener {
-                    isLoadingAd = false
-                }
-        } else {
-            isLoadingAd = false
-        }
+    LaunchedEffect(houseId) {
+        FirebaseFirestore.getInstance().collection("ads")
+            .document(houseId)
+            .get()
+            .addOnSuccessListener { document ->
+                ad = document.toObject(PropertyAd::class.java)
+                isLoading = false
+            }
+            .addOnFailureListener {
+                isLoading = false
+                Toast.makeText(context, "Failed to load property details", Toast.LENGTH_SHORT).show()
+            }
     }
 
-    if (isLoadingAd) {
+    if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = Color(0xFF38B6FF))
         }
-    } else if (ad != null) {
-        var isBooking by remember { mutableStateOf(false) }
-
+    } else if (ad == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Property not found")
+        }
+    } else {
+        val property = ad!!
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -123,7 +97,7 @@ fun DetailScreen(navController: NavController, adId: String?) {
                         Column {
                             Text(text = "Price", color = Color.Gray, fontSize = 14.sp)
                             Text(
-                                text = "₹${ad!!.rent}/month",
+                                text = "₹${property.rent}/month",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp,
                                 color = Color(0xFF006874)
@@ -132,7 +106,7 @@ fun DetailScreen(navController: NavController, adId: String?) {
                         Button(
                             onClick = {
                                 isBooking = true
-                                bookProperty(ad!!) { success ->
+                                bookProperty(property) { success ->
                                     isBooking = false
                                     if (success) {
                                         Toast.makeText(
@@ -179,9 +153,9 @@ fun DetailScreen(navController: NavController, adId: String?) {
                 Box(modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)) {
-                    if (ad!!.imageUrls.isNotEmpty()) {
+                    if (property.imageUrls.isNotEmpty()) {
                         Image(
-                            painter = rememberAsyncImagePainter(ad!!.imageUrls.first()),
+                            painter = rememberAsyncImagePainter(property.imageUrls.first()),
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -197,7 +171,7 @@ fun DetailScreen(navController: NavController, adId: String?) {
                 }
 
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text(text = ad!!.title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(text = property.title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -207,7 +181,7 @@ fun DetailScreen(navController: NavController, adId: String?) {
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = ad!!.location,
+                            text = property.location,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp)
                         )
@@ -221,18 +195,18 @@ fun DetailScreen(navController: NavController, adId: String?) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        InfoChip(Icons.Default.Info, "${ad!!.rooms} BHK")
-                        InfoChip(Icons.Default.Info, "${ad!!.bathrooms} Bath")
-                        InfoChip(Icons.Default.Info, "Floor ${ad!!.floorNo}")
-                        InfoChip(Icons.Default.Info, ad!!.furnishing)
+                        InfoChip(Icons.Default.Info, "${property.rooms} BHK")
+                        InfoChip(Icons.Default.Info, "${property.bathrooms} Bath")
+                        InfoChip(Icons.Default.Info, "Floor ${property.floorNo}")
+                        InfoChip(Icons.Default.Info, property.furnishing)
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(text = "Description", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = ad!!.description, color = Color.DarkGray, lineHeight = 20.sp)
+                    Text(text = property.description, color = Color.DarkGray, lineHeight = 20.sp)
 
-                    Spacer(modifier = Modifier.height(100.dp)) // Extra space for bottom bar
+                    Spacer(modifier = Modifier.height(100.dp))
                 }
             }
         }
@@ -267,16 +241,24 @@ fun bookProperty(ad: PropertyAd, onResult: (Boolean) -> Unit) {
         bookingId = bookingId,
         houseId = ad.houseId,
         ownerId = ad.ownerId,
-        userId = user.uid, // Corrected to userId to match Booking data class and Firestore rules
-        bachelorEmail = user.email ?: "",
+        bachelorId = user.uid,
+        bachelorEmail = user.email ?: "Unknown Email",
         houseTitle = ad.title,
+        houseLocation = ad.location,
         rent = ad.rent,
-        status = "pending"
+        status = "pending",
+        timestamp = System.currentTimeMillis()
     )
 
     FirebaseFirestore.getInstance().collection("bookings")
         .document(bookingId)
         .set(booking)
-        .addOnSuccessListener { onResult(true) }
-        .addOnFailureListener { onResult(false) }
+        .addOnSuccessListener { 
+            Log.d("Booking", "Successfully created booking: $bookingId")
+            onResult(true) 
+        }
+        .addOnFailureListener { e -> 
+            Log.e("Booking", "Error creating booking", e)
+            onResult(false) 
+        }
 }

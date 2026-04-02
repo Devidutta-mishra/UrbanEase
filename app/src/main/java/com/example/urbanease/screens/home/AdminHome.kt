@@ -60,7 +60,7 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
             }
 
             when (selectedTab) {
-                0 -> PendingAdsTab(viewModel) { selectedTab = 1 }
+                0 -> PendingAdsTab(viewModel)
                 1 -> AllAdsTab(viewModel)
                 2 -> UsersTab(viewModel.owners.value, "Owners")
                 3 -> UsersTab(viewModel.bachelors.value, "Bachelors")
@@ -70,8 +70,8 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
 }
 
 @Composable
-fun PendingAdsTab(viewModel: AdminHomeViewModel, onActionDone: () -> Unit) {
-    val pendingAds = viewModel.ads.value.filter { !it.isApproved }
+fun PendingAdsTab(viewModel: AdminHomeViewModel) {
+    val pendingAds = viewModel.ads.value.filter { it.status == "available" && !it.isApproved }
     if (pendingAds.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No pending ads")
@@ -81,14 +81,8 @@ fun PendingAdsTab(viewModel: AdminHomeViewModel, onActionDone: () -> Unit) {
             items(pendingAds) { ad ->
                 AdminAdCard(
                     ad,
-                    onApprove = {
-                        viewModel.approveAd(ad.houseId)
-                        onActionDone()
-                    },
-                    onReject = {
-                        viewModel.rejectAd(ad.houseId)
-                        onActionDone()
-                    }
+                    onApprove = { viewModel.approveAd(ad.houseId) },
+                    onReject = { viewModel.rejectAd(ad.houseId) }
                 )
             }
         }
@@ -98,9 +92,15 @@ fun PendingAdsTab(viewModel: AdminHomeViewModel, onActionDone: () -> Unit) {
 @Composable
 fun AllAdsTab(viewModel: AdminHomeViewModel) {
     val allAds = viewModel.ads.value
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        items(allAds) { ad ->
-            AdminAdCard(ad, showActions = false)
+    if (allAds.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No ads found")
+        }
+    } else {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            items(allAds) { ad ->
+                AdminAdCard(ad, showActions = true, onApprove = { viewModel.approveAd(ad.houseId) }, onReject = { viewModel.rejectAd(ad.houseId) })
+            }
         }
     }
 }
@@ -137,28 +137,84 @@ fun AdminAdCard(ad: PropertyAd, onApprove: () -> Unit = {}, onReject: () -> Unit
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
-            if (ad.imageUrls.isNotEmpty()) {
-                Image(
-                    painter = rememberAsyncImagePainter(ad.imageUrls.first()),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                    contentScale = ContentScale.Crop
-                )
+            Box {
+                if (ad.imageUrls.isNotEmpty()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(ad.imageUrls.first()),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxWidth().height(150.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                
+                // Status Badge
+                Surface(
+                    color = when {
+                        ad.isApproved -> Color(0xFFE8F5E9)
+                        ad.status == "rejected" -> Color(0xFFFFEBEE)
+                        else -> Color(0xFFFFF3E0)
+                    },
+                    shape = RoundedCornerShape(bottomEnd = 12.dp),
+                    modifier = Modifier.align(Alignment.TopStart)
+                ) {
+                    Text(
+                        text = when {
+                            ad.isApproved -> "Approved"
+                            ad.status == "rejected" -> "Rejected"
+                            else -> "Pending"
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = when {
+                            ad.isApproved -> Color(0xFF2E7D32)
+                            ad.status == "rejected" -> Color.Red
+                            else -> Color(0xFFEF6C00)
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = ad.title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(text = "Location: ${ad.location}")
-                Text(text = "Rent: ₹${ad.rent}")
-                Text(text = "Status: ${if (ad.isApproved) "Approved" else "Pending"}")
+                Text(text = "Location: ${ad.location}", color = Color.Gray)
+                Text(text = "Rent: ₹${ad.rent}", fontWeight = FontWeight.SemiBold, color = Color(0xFF006874))
                 
-                if (showActions && !ad.isApproved) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
-                        Button(onClick = onReject, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
-                            Text("Reject")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(onClick = onApprove, colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) {
-                            Text("Approve")
+                if (showActions) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        if (ad.status != "rejected" && !ad.isApproved) {
+                            Button(
+                                onClick = onReject,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Reject")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = onApprove,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38B6FF)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Approve")
+                            }
+                        } else if (ad.status == "rejected") {
+                             Button(
+                                onClick = onApprove,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38B6FF)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Approve Anyway")
+                            }
+                        } else if (ad.isApproved) {
+                            Button(
+                                onClick = onReject,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Revoke Approval")
+                            }
                         }
                     }
                 }
