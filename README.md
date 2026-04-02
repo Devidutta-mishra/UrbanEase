@@ -56,9 +56,10 @@ UrbanEase is a modern, real-time property management and discovery platform desi
 
 ## 📸 Screenshots
 
-| Login | Bachelor Home | Dashboard | Property Details |
-| :---: | :---: | :---: | :---: |
-| ![Login](https://via.placeholder.com/200x400?text=Login) | ![Home](https://via.placeholder.com/200x400?text=Bachelor+Home) | ![Dashboard](https://via.placeholder.com/200x400?text=Owner+Dashboard) | ![Details](https://via.placeholder.com/200x400?text=Property+Details) |
+<p align="center">
+  <img src="screenshots/login.png" width="300" alt="Login Screen" />
+  <img src="screenshots/home.png" width="300" alt="Bachelor Home Screen" />
+</p>
 
 ## ⚖️ License
 
