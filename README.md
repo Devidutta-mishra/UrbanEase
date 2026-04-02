@@ -54,15 +54,5 @@ UrbanEase is a modern, real-time property management and discovery platform desi
    - Sync the project with Gradle files.
    - Run the app on an emulator or physical device.
 
-## 📸 Screenshots
-
-| Login | Bachelor Home | Dashboard | Property Details |
-| :---: | :---: | :---: | :---: |
-| ![Login](https://via.placeholder.com/200x400?text=Login) | ![Home](https://via.placeholder.com/200x400?text=Bachelor+Home) | ![Dashboard](https://via.placeholder.com/200x400?text=Owner+Dashboard) | ![Details](https://via.placeholder.com/200x400?text=Property+Details) |
-
-## ⚖️ License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
 ---
 *Created with ❤️ for modern urban living.*
