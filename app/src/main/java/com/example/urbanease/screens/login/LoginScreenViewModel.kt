@@ -22,18 +22,78 @@ class LoginScreenViewModel : ViewModel() {
     var error: MutableState<String?> = mutableStateOf(null)
         private set
 
+    var emailError = mutableStateOf<String?>(null)
+        private set
+
+    var passwordError = mutableStateOf<String?>(null)
+        private set
+
+    var email = mutableStateOf("")
+        private set
+
+    var password = mutableStateOf("")
+        private set
+
+
+    fun validateEmail(email: String) {
+        val cleanEmail = email.trim()
+
+        emailError.value = when {
+            cleanEmail.isBlank() -> "Email cannot be empty"
+            cleanEmail.any { it.isWhitespace() } -> "Email should not contain spaces"
+            !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() -> "Invalid email format"
+            else -> null
+        }
+    }
+
+    fun validatePassword(password: String) {
+        passwordError.value = when {
+            password.isBlank() -> "Password cannot be empty"
+            password.length < 6 -> "Password must be at least 6 characters"
+            else -> null
+        }
+    }
+
+
+    fun onEmailChange(newEmail: String) {
+        email.value = newEmail
+        validateEmail(newEmail)
+    }
+
+    fun onPasswordChange(newPassword: String) {
+        password.value = newPassword
+        validatePassword(newPassword)
+    }
     fun createUserWithEmailAndPassword(
         email: String,
         password: String,
         role: String,
         home: () -> Unit
     ) {
+
+        val cleanEmail = email.trim()
+        val cleanPassword = password.trim()
+
+        if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
+            error.value = "Email and Password cannot be empty"
+            return
+        }
+        if (cleanEmail.any { it.isWhitespace() }) {
+            error.value = "Email should not contain spaces"
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            error.value = "Invalid email format"
+            return
+        }
+
         if (loading.value) return
 
         loading.value = true
         error.value = null
 
-        auth.createUserWithEmailAndPassword(email, password)
+        auth.createUserWithEmailAndPassword(cleanEmail, cleanPassword)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val displayName = task.result?.user?.email?.split('@')?.get(0)
@@ -70,12 +130,31 @@ class LoginScreenViewModel : ViewModel() {
 
 
     fun signInWithEmailAndPassword(email: String, password: String, home: (String) -> Unit) {
+
+        val cleanEmail = email.trim()
+        val cleanPassword = password.trim()
+
+        if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
+            error.value = "Email and Password cannot be empty"
+            return
+        }
+
+        if (cleanEmail.any { it.isWhitespace() }) {
+            error.value = "Email should not contain spaces"
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            error.value = "Invalid email format"
+            return
+        }
+
         if (loading.value) return
 
         loading.value = true
         error.value = null
 
-        auth.signInWithEmailAndPassword(email, password)
+        auth.signInWithEmailAndPassword(cleanEmail, cleanPassword)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val userId = auth.currentUser?.uid

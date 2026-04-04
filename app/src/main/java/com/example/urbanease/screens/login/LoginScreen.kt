@@ -1,5 +1,6 @@
 package com.example.urbanease.screens.login
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -45,8 +47,17 @@ fun LoginScreen(
     val loading = viewModel.loading.value
     val error = viewModel.error.value
 
+    val context = LocalContext.current
+
+    LaunchedEffect(error) {
+        error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     if (showLoginForm.value) {
         LoginContent(
+            viewModel = viewModel,
             loading = loading,
             error = error,
             onSignIn = { email, password ->
@@ -62,6 +73,7 @@ fun LoginScreen(
         )
     } else {
         CreateAccountContent(
+            viewModel = viewModel,
             loading = loading,
             error = error,
             onBack = { showLoginForm.value = true },
@@ -81,14 +93,16 @@ fun LoginScreen(
 
 @Composable
 fun LoginContent(
+    viewModel: LoginScreenViewModel,
     loading: Boolean,
     error: String?,
     onSignIn: (String, String) -> Unit,
     onNavigateToSignup: () -> Unit
 ) {
-    val emailState = rememberSaveable { mutableStateOf("") }
-    val passwordState = rememberSaveable { mutableStateOf("") }
+
     val passwordVisible = rememberSaveable { mutableStateOf(false) }
+    val email = viewModel.email.value
+    val password = viewModel.password.value
 
     Column(
         modifier = Modifier
@@ -103,7 +117,7 @@ fun LoginContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(40.dp))
-        
+
         // Logo
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -140,9 +154,11 @@ fun LoginContent(
         // Email Field
         CustomInputField(
             label = "EMAIL ADDRESS",
-            valueState = emailState,
+            value = email,
+            onValueChange = { viewModel.onEmailChange(it) },
             placeholder = "name@example.com",
-            icon = Icons.Default.Email
+            icon = Icons.Default.Email,
+            error = viewModel.emailError.value
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -150,13 +166,14 @@ fun LoginContent(
         // Password Field
         CustomInputField(
             label = "PASSWORD",
-            valueState = passwordState,
+            value = password,
+            onValueChange = { viewModel.onPasswordChange(it) },
             placeholder = "********",
             icon = Icons.Default.Lock,
             isPassword = true,
             passwordVisible = passwordVisible.value,
             onPasswordToggle = { passwordVisible.value = !passwordVisible.value },
-            trailingText = "Forgot Password?"
+            error = viewModel.passwordError.value
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -167,13 +184,13 @@ fun LoginContent(
         }
 
         Button(
-            onClick = { onSignIn(emailState.value, passwordState.value) },
+            onClick = { onSignIn(email, password) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF245D69)),
             shape = RoundedCornerShape(12.dp),
-            enabled = !loading && emailState.value.isNotEmpty() && passwordState.value.isNotEmpty()
+            enabled = !loading && viewModel.emailError.value == null && viewModel.passwordError.value == null && email.isNotEmpty() && password.isNotEmpty()
         ) {
             if (loading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
@@ -181,7 +198,11 @@ fun LoginContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Sign In", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
@@ -201,9 +222,20 @@ fun LoginContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            SocialButton(text = "Google", icon = R.drawable.ic_launcher_foreground, modifier = Modifier.weight(1f)) 
-            SocialButton(text = "Facebook", icon = R.drawable.ic_launcher_foreground, modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SocialButton(
+                text = "Google",
+                icon = R.drawable.ic_launcher_foreground,
+                modifier = Modifier.weight(1f)
+            )
+            SocialButton(
+                text = "Facebook",
+                icon = R.drawable.ic_launcher_foreground,
+                modifier = Modifier.weight(1f)
+            )
         }
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -219,7 +251,7 @@ fun LoginContent(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        
+
         Text(
             text = "© 2024 URBANEASE PROPERTY SOLUTIONS",
             fontSize = 10.sp,
@@ -231,6 +263,7 @@ fun LoginContent(
 
 @Composable
 fun CreateAccountContent(
+    viewModel: LoginScreenViewModel,
     loading: Boolean,
     error: String?,
     onBack: () -> Unit,
@@ -238,11 +271,11 @@ fun CreateAccountContent(
     onNavigateToLogin: () -> Unit
 ) {
     val nameState = rememberSaveable { mutableStateOf("") }
-    val emailState = rememberSaveable { mutableStateOf("") }
     val phoneState = rememberSaveable { mutableStateOf("") }
-    val passwordState = rememberSaveable { mutableStateOf("") }
     val selectedRole = rememberSaveable { mutableStateOf("bachelor") }
     val termsAccepted = rememberSaveable { mutableStateOf(false) }
+    val email = viewModel.email.value
+    val password = viewModel.password.value
 
     Column(
         modifier = Modifier
@@ -252,13 +285,17 @@ fun CreateAccountContent(
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(modifier = Modifier.height(20.dp))
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF245D69))
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF245D69)
+                )
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
@@ -293,7 +330,7 @@ fun CreateAccountContent(
             fontWeight = FontWeight.Bold,
             color = Color(0xFF245D69)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -305,7 +342,10 @@ fun CreateAccountContent(
                     color = if (isSelected) Color(0xFF245D69) else Color(0xFFF2F2F2),
                     modifier = Modifier.height(40.dp)
                 ) {
-                    Box(modifier = Modifier.padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
                             text = role,
                             color = if (isSelected) Color.White else Color.Black,
@@ -319,13 +359,40 @@ fun CreateAccountContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        CustomInputField(label = "FULL NAME", valueState = nameState, placeholder = "Enter your full name", icon = Icons.Default.Person)
+        CustomInputField(
+            label = "FULL NAME",
+            value = nameState.value,
+            onValueChange = { nameState.value = it },
+            placeholder = "Enter your full name",
+            icon = Icons.Default.Person
+        )
         Spacer(modifier = Modifier.height(20.dp))
-        CustomInputField(label = "EMAIL ADDRESS", valueState = emailState, placeholder = "name@example.com", icon = Icons.Default.Email)
+        CustomInputField(
+            label = "EMAIL ADDRESS",
+            value = email,
+            onValueChange = { viewModel.onEmailChange(it) },
+            placeholder = "name@example.com",
+            icon = Icons.Default.Email,
+            error = viewModel.emailError.value
+        )
         Spacer(modifier = Modifier.height(20.dp))
-        CustomInputField(label = "PHONE NUMBER", valueState = phoneState, placeholder = "+1 (555) 000-0000", icon = Icons.Default.Phone)
+        CustomInputField(
+            label = "PHONE NUMBER",
+            value = phoneState.value,
+            onValueChange = { phoneState.value = it },
+            placeholder = "+1 (555) 000-0000",
+            icon = Icons.Default.Phone
+        )
         Spacer(modifier = Modifier.height(20.dp))
-        CustomInputField(label = "PASSWORD", valueState = passwordState, placeholder = "********", icon = Icons.Default.Lock, isPassword = true)
+        CustomInputField(
+            label = "PASSWORD",
+            value = password,
+            onValueChange = { viewModel.onPasswordChange(it) },
+            placeholder = "********",
+            icon = Icons.Default.Lock,
+            isPassword = true,
+            error = viewModel.passwordError.value
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -351,13 +418,18 @@ fun CreateAccountContent(
         }
 
         Button(
-            onClick = { onSignUp(emailState.value, passwordState.value, selectedRole.value) },
+            onClick = { onSignUp(email, password, selectedRole.value) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF245D69)),
             shape = RoundedCornerShape(12.dp),
-            enabled = !loading && termsAccepted.value && emailState.value.isNotEmpty() && passwordState.value.isNotEmpty()
+            enabled = !loading &&
+                    termsAccepted.value &&
+                    viewModel.emailError.value == null &&
+                    viewModel.passwordError.value == null &&
+                    email.isNotBlank() &&
+                    password.isNotBlank()
         ) {
             if (loading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
@@ -379,31 +451,39 @@ fun CreateAccountContent(
         }
 
         Spacer(modifier = Modifier.height(40.dp))
-        
+
         // Quote Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
         ) {
-            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+            ) {
                 Image(
-                    painter = painterResource(id = R.drawable.istockphoto_856794670_612x612), 
+                    painter = painterResource(id = R.drawable.istockphoto_856794670_612x612),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(24.dp)),
                     contentScale = ContentScale.Crop,
                     alpha = 0.6f
                 )
                 Text(
                     text = "\"Finding a sanctuary in the city has never been this effortless.\"",
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1A1D52)
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(40.dp))
     }
 }
@@ -411,13 +491,15 @@ fun CreateAccountContent(
 @Composable
 fun CustomInputField(
     label: String,
-    valueState: MutableState<String>,
+    value: String,
+    onValueChange: (String) -> Unit,
     placeholder: String,
     icon: ImageVector,
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
     onPasswordToggle: () -> Unit = {},
-    trailingText: String? = null
+    trailingText: String? = null,
+    error: String? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -441,12 +523,13 @@ fun CustomInputField(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         OutlinedTextField(
-            value = valueState.value,
-            onValueChange = { valueState.value = it },
+            value = value,
+            isError = error != null,
+            onValueChange = onValueChange,
             placeholder = { Text(text = placeholder, color = Color.LightGray) },
             leadingIcon = { Icon(icon, contentDescription = null, tint = Color.LightGray) },
             trailingIcon = if (isPassword) {
@@ -474,6 +557,16 @@ fun CustomInputField(
                 imeAction = ImeAction.Next
             )
         )
+
+        if (error != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = error,
+                color = Color.Red,
+                fontSize = 12.sp
+            )
+        }
+
     }
 }
 
