@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.home
+package com.example.urbanease.screens.owner
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background

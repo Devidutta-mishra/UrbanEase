@@ -1,11 +1,20 @@
 package com.example.urbanease.screens.login
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,9 +22,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +51,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -46,14 +72,6 @@ fun LoginScreen(
     val showLoginForm = rememberSaveable { mutableStateOf(true) }
     val loading = viewModel.loading.value
     val error = viewModel.error.value
-
-    val context = LocalContext.current
-
-    LaunchedEffect(error) {
-        error?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-        }
-    }
 
     if (showLoginForm.value) {
         LoginContent(
@@ -176,10 +194,14 @@ fun LoginContent(
             error = viewModel.passwordError.value
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         if (error != null) {
-            Text(text = error, color = Color.Red, fontSize = 14.sp)
+            Text(
+                text = "Incorrect email or password. Please try again.",
+                color = Color.Red,
+                fontSize = 14.sp
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -205,37 +227,6 @@ fun LoginContent(
                     )
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
-            Text(
-                text = "Or continue with",
-                modifier = Modifier.padding(horizontal = 16.dp),
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SocialButton(
-                text = "Google",
-                icon = R.drawable.ic_launcher_foreground,
-                modifier = Modifier.weight(1f)
-            )
-            SocialButton(
-                text = "Facebook",
-                icon = R.drawable.ic_launcher_foreground,
-                modifier = Modifier.weight(1f)
-            )
         }
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -297,7 +288,7 @@ fun CreateAccountContent(
                     tint = Color(0xFF245D69)
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
+
             Text(
                 text = "UrbanEase",
                 fontSize = 20.sp,
@@ -307,7 +298,7 @@ fun CreateAccountContent(
             Spacer(modifier = Modifier.width(48.dp))
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = "Create Account",
@@ -322,7 +313,7 @@ fun CreateAccountContent(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "SELECT YOUR ROLE",
@@ -366,7 +357,7 @@ fun CreateAccountContent(
             placeholder = "Enter your full name",
             icon = Icons.Default.Person
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         CustomInputField(
             label = "EMAIL ADDRESS",
             value = email,
@@ -375,7 +366,7 @@ fun CreateAccountContent(
             icon = Icons.Default.Email,
             error = viewModel.emailError.value
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         CustomInputField(
             label = "PHONE NUMBER",
             value = phoneState.value,
@@ -383,7 +374,7 @@ fun CreateAccountContent(
             placeholder = "+1 (555) 000-0000",
             icon = Icons.Default.Phone
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         CustomInputField(
             label = "PASSWORD",
             value = password,
@@ -394,7 +385,7 @@ fun CreateAccountContent(
             error = viewModel.passwordError.value
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
@@ -410,7 +401,7 @@ fun CreateAccountContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         if (error != null) {
             Text(text = error, color = Color.Red, fontSize = 14.sp)
@@ -438,7 +429,7 @@ fun CreateAccountContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(text = "Already have an account? ", color = Color.Gray)
@@ -449,42 +440,6 @@ fun CreateAccountContent(
                 modifier = Modifier.clickable { onNavigateToLogin() }
             )
         }
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Quote Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.istockphoto_856794670_612x612),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(24.dp)),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.6f
-                )
-                Text(
-                    text = "\"Finding a sanctuary in the city has never been this effortless.\"",
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1D52)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 

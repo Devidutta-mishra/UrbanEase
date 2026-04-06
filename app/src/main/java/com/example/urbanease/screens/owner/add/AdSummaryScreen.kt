@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.add
+package com.example.urbanease.screens.owner.add
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement

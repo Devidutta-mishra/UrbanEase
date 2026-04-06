@@ -41,7 +41,9 @@ class LoginScreenViewModel : ViewModel() {
         emailError.value = when {
             cleanEmail.isBlank() -> "Email cannot be empty"
             cleanEmail.any { it.isWhitespace() } -> "Email should not contain spaces"
-            !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() -> "Invalid email format"
+            !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() -> {
+                if (cleanEmail.contains(".com")) "Invalid email format" else null
+            }
             else -> null
         }
     }

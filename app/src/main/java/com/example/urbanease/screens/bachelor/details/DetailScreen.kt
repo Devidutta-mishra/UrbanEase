@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.details
+package com.example.urbanease.screens.bachelor.details
 
 import android.annotation.SuppressLint
 import android.util.Log

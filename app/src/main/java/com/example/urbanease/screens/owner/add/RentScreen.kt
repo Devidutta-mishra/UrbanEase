@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.add
+package com.example.urbanease.screens.owner.add
 
 import android.annotation.SuppressLint
 import android.widget.Toast

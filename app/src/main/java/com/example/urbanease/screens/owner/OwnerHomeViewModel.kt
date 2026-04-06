@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.home
+package com.example.urbanease.screens.owner
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel

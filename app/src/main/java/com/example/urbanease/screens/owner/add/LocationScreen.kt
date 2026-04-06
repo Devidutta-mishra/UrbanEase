@@ -1,6 +1,5 @@
-package com.example.urbanease.screens.add
+package com.example.urbanease.screens.owner.add
 
-import android.R
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.background
@@ -31,8 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.urbanease.components.Appbar
 import com.example.urbanease.components.BottomButton
 import com.example.urbanease.model.PostAdViewModel

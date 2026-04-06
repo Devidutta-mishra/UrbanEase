@@ -10,16 +10,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import com.example.urbanease.model.PostAdViewModel
-import com.example.urbanease.screens.add.AdSummaryScreen
-import com.example.urbanease.screens.add.LocationScreen
-import com.example.urbanease.screens.add.PhotoScreen
-import com.example.urbanease.screens.add.RentScreen
-import com.example.urbanease.screens.details.DetailScreen
-import com.example.urbanease.screens.home.AdminHome
-import com.example.urbanease.screens.home.BachelorHome
-import com.example.urbanease.screens.home.HomeScreen
-import com.example.urbanease.screens.home.OwnerHome
+import com.example.urbanease.screens.admin.AdminHome
+import com.example.urbanease.screens.bachelor.BachelorHome
+import com.example.urbanease.screens.bachelor.details.DetailScreen
 import com.example.urbanease.screens.login.LoginScreen
+import com.example.urbanease.screens.owner.OwnerHome
+import com.example.urbanease.screens.owner.add.AdSummaryScreen
+import com.example.urbanease.screens.owner.add.LocationScreen
+import com.example.urbanease.screens.owner.add.PhotoScreen
+import com.example.urbanease.screens.owner.add.RentScreen
 import com.example.urbanease.screens.splash.SplashScreen
 
 @Composable
@@ -34,10 +33,6 @@ fun UrbanNavigation(navController: NavHostController) {
 
         composable(UrbanScreens.LoginScreen.name) {
             LoginScreen(navController = navController)
-        }
-
-        composable(UrbanScreens.HomeScreen.name) {
-            HomeScreen(navController = navController)
         }
 
         composable(UrbanScreens.BachelorScreen.name) {
@@ -65,7 +60,7 @@ fun UrbanNavigation(navController: NavHostController) {
             route = "post_ad_graph"
         ) {
             composable(UrbanScreens.LocationScreen.name) { navBackStackEntry ->
-                val parentEntry = remember(navController) {
+                val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
                 val viewModel = hiltViewModel<PostAdViewModel>(parentEntry)
@@ -73,7 +68,7 @@ fun UrbanNavigation(navController: NavHostController) {
             }
 
             composable(UrbanScreens.RentScreen.name) { navBackStackEntry ->
-                val parentEntry = remember(navController) {
+                val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
                 val viewModel = hiltViewModel<PostAdViewModel>(parentEntry)
@@ -81,7 +76,7 @@ fun UrbanNavigation(navController: NavHostController) {
             }
 
             composable(UrbanScreens.PhotoScreen.name) { navBackStackEntry ->
-                val parentEntry = remember(navController) {
+                val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
                 val viewModel = hiltViewModel<PostAdViewModel>(parentEntry)
@@ -89,7 +84,7 @@ fun UrbanNavigation(navController: NavHostController) {
             }
 
             composable(UrbanScreens.AdSummaryScreen.name) { navBackStackEntry ->
-                val parentEntry = remember(navController) {
+                val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
                 val viewModel = hiltViewModel<PostAdViewModel>(parentEntry)

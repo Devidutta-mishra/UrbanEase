@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.home
+package com.example.urbanease.screens.admin
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf

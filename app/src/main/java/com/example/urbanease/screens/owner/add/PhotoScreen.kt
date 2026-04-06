@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.add
+package com.example.urbanease.screens.owner.add
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
