@@ -34,32 +34,6 @@ UrbanEase is a modern, real-time property management and discovery platform desi
 - **Image Loading**: [Coil](https://coil-kt.github.io/coil/)
 - **Navigation**: [Compose Navigation](https://developer.android.com/jetpack/compose/navigation)
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Android Studio Ladybug or newer.
-- A Firebase Project (Google Services JSON file required).
-
-### Setup
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/UrbanEase.git
-   ```
-2. **Firebase Configuration**:
-   - Create a project in the [Firebase Console](https://console.firebase.google.com/).
-   - Add an Android app with the package name `com.example.urbanease`.
-   - Download `google-services.json` and place it in the `app/` directory.
-   - Enable **Email/Password Authentication**, **Cloud Firestore**, and **Firebase Storage**.
-3. **Build and Run**:
-   - Sync the project with Gradle files.
-   - Run the app on an emulator or physical device.
-
-## 📸 Screenshots
-
-| Login | Bachelor Home | Dashboard | Property Details |
-| :---: | :---: | :---: | :---: |
-| ![Login](https://via.placeholder.com/200x400?text=Login) | ![Home](https://via.placeholder.com/200x400?text=Bachelor+Home) | ![Dashboard](https://via.placeholder.com/200x400?text=Owner+Dashboard) | ![Details](https://via.placeholder.com/200x400?text=Property+Details) |
-
 ## ⚖️ License
 
 Distributed under the MIT License. See `LICENSE` for more information.
