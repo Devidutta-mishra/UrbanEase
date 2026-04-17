@@ -15,7 +15,11 @@ enum class UrbanScreens {
     PhotoScreen,
     LocationScreen,
     AdSummaryScreen,
-    OwnerBookingsScreen;
+    OwnerBookingsScreen,
+    PropertyDetailScreen,
+    RequestsScreen,
+    RequestDetailScreen,
+    SettingsScreen;
 
     companion object {
         fun fromRoute(route: String?) : UrbanScreens = when(route?.substringBefore("/")){
@@ -34,6 +38,10 @@ enum class UrbanScreens {
             PhotoScreen.name -> PhotoScreen
             AdSummaryScreen.name -> AdSummaryScreen
             OwnerBookingsScreen.name -> OwnerBookingsScreen
+            PropertyDetailScreen.name -> PropertyDetailScreen
+            RequestsScreen.name -> RequestsScreen
+            RequestDetailScreen.name -> RequestDetailScreen
+            SettingsScreen.name -> SettingsScreen
             null -> HomeScreen
             else -> throw IllegalArgumentException("Route $route is not recognized")
         }

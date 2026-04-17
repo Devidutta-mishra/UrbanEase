@@ -43,7 +43,7 @@ fun DetailScreen(navController: NavController, houseId: String) {
     var isBooking by remember { mutableStateOf(false) }
 
     LaunchedEffect(houseId) {
-        FirebaseFirestore.getInstance().collection("ads")
+        FirebaseFirestore.getInstance().collection("properties")
             .document(houseId)
             .get()
             .addOnSuccessListener { document ->
@@ -234,31 +234,39 @@ fun InfoChip(icon: ImageVector, text: String) {
 }
 
 fun bookProperty(ad: PropertyAd, onResult: (Boolean) -> Unit) {
-    val user = FirebaseAuth.getInstance().currentUser ?: return
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    if (currentUser == null) {
+        Log.e("REQ_DEBUG", "Auth failed: currentUser is null")
+        onResult(false)
+        return
+    }
+
+    val uid = currentUser.uid
     val bookingId = UUID.randomUUID().toString()
 
-    val booking = Booking(
-        bookingId = bookingId,
-        houseId = ad.houseId,
-        ownerId = ad.ownerId,
-        bachelorId = user.uid,
-        bachelorEmail = user.email ?: "Unknown Email",
-        houseTitle = ad.title,
-        houseLocation = ad.location,
-        rent = ad.rent,
-        status = "pending",
-        timestamp = System.currentTimeMillis()
+    // Create hashmap to match Firestore Rule: request.resource.data.userId == request.auth.uid
+    val requestMap = hashMapOf(
+        "requestId" to bookingId,
+        "userId" to uid,           // This must match request.auth.uid
+        "ownerId" to ad.ownerId,
+        "propertyId" to ad.houseId,
+        "status" to "pending",
+        "createdAt" to System.currentTimeMillis()
     )
 
-    FirebaseFirestore.getInstance().collection("bookings")
+    Log.d("REQ_DEBUG", "Auth UID = $uid")
+    Log.d("REQ_DEBUG", "userId sent = ${requestMap["userId"]}")
+    Log.d("REQ_DEBUG", "Full request = $requestMap")
+
+    FirebaseFirestore.getInstance().collection("requests")
         .document(bookingId)
-        .set(booking)
+        .set(requestMap)
         .addOnSuccessListener { 
-            Log.d("Booking", "Successfully created booking: $bookingId")
+            Log.d("REQ_DEBUG", "Successfully created booking: $bookingId")
             onResult(true) 
         }
         .addOnFailureListener { e -> 
-            Log.e("Booking", "Error creating booking", e)
+            Log.e("FIREBASE_ERROR", "Request failed", e)
             onResult(false) 
         }
 }

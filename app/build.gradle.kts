@@ -5,6 +5,8 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+    id("com.google.firebase.firebase-perf")
+
 }
 
 android {
@@ -78,5 +80,6 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
-    implementation("com.google.firebase:firebase-appcheck-debug")
+    implementation(libs.google.firebase.appcheck.debug)
+    implementation(libs.firebase.perf)
 }

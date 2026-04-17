@@ -28,7 +28,7 @@ class BachelorHomeViewModel @Inject constructor(
         adsListener?.remove()
 
         adsListener = FirebaseFirestore.getInstance()
-            .collection("ads")
+            .collection("properties")
             .whereEqualTo("isApproved", true)
             .addSnapshotListener { snapshot, error ->
 

@@ -1,6 +1,7 @@
 [versions]
 agp = "8.10.1"
 firebaseBom = "33.16.0"
+firebaseBomVersion = "34.12.0"
 hiltAndroid = "2.56.2"
 hiltNavigationCompose = "1.2.0"
 kotlin = "2.0.21"
@@ -24,6 +25,9 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-bom-v34120 = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBomVersion" }
+firebase-perf = { module = "com.google.firebase:firebase-perf" }
+google-firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -53,5 +53,13 @@ data class PropertyAd(
 
     @get:PropertyName("isApproved")
     @set:PropertyName("isApproved")
-    var isApproved: Boolean = false
+    var isApproved: Boolean = false,
+
+    @get:PropertyName("adminNote")
+    @set:PropertyName("adminNote")
+    var adminNote: String = "",
+
+    @get:PropertyName("createdAt")
+    @set:PropertyName("createdAt")
+    var createdAt: Long = System.currentTimeMillis()
 )

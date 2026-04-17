@@ -10,7 +10,7 @@ import jakarta.inject.Singleton
 class HouseRepository @Inject constructor() {
 
     private val firestore = FirebaseFirestore.getInstance()
-    private val adsRef = firestore.collection("ads")
+    private val adsRef = firestore.collection("properties")
 
     fun listenToAdsForOwner(ownerId: String, onResult: (List<PropertyAd>) -> Unit): ListenerRegistration {
         return adsRef.whereEqualTo("ownerId", ownerId)

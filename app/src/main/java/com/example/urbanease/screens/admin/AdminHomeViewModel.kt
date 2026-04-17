@@ -57,7 +57,7 @@ class AdminHomeViewModel @Inject constructor() : ViewModel() {
     private fun fetchAllData() {
         // Listen to all ads
         adsListener?.remove()
-        adsListener = FirebaseFirestore.getInstance().collection("ads")
+        adsListener = FirebaseFirestore.getInstance().collection("properties")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("AdminHomeVM", "Error fetching ads: ${error.message}")
@@ -102,7 +102,7 @@ class AdminHomeViewModel @Inject constructor() : ViewModel() {
             "isApproved" to true,
             "status" to "approved"
         )
-        FirebaseFirestore.getInstance().collection("ads").document(houseId)
+        FirebaseFirestore.getInstance().collection("properties").document(houseId)
             .update(updates)
             .addOnSuccessListener {
                 Log.d("AdminHomeVM", "Ad approved successfully: $houseId")
@@ -119,7 +119,7 @@ class AdminHomeViewModel @Inject constructor() : ViewModel() {
             "isApproved" to false,
             "status" to "rejected"
         )
-        FirebaseFirestore.getInstance().collection("ads").document(houseId)
+        FirebaseFirestore.getInstance().collection("properties").document(houseId)
             .update(updates)
             .addOnSuccessListener {
                 Log.d("AdminHomeVM", "Ad rejected successfully: $houseId")

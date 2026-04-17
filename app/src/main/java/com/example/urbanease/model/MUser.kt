@@ -19,6 +19,10 @@ data class MUser(
     @set:PropertyName("role")
     var role: String = "",
 
+    @get:PropertyName("phone_number")
+    @set:PropertyName("phone_number")
+    var phoneNumber: String = "",
+
     var id: String? = null
 ){
     fun toMap(): MutableMap<String, Any> {
@@ -26,7 +30,8 @@ data class MUser(
             "user_id" to this.userId,
             "display_name" to this.displayName,
             "avatar_url" to this.avatarUrl,
-            "role" to this.role
+            "role" to this.role,
+            "phone_number" to this.phoneNumber
         )
     }
 }

@@ -15,6 +15,10 @@ import com.example.urbanease.screens.bachelor.BachelorHome
 import com.example.urbanease.screens.bachelor.details.DetailScreen
 import com.example.urbanease.screens.login.LoginScreen
 import com.example.urbanease.screens.owner.OwnerHome
+import com.example.urbanease.screens.owner.PropertyDetailScreen
+import com.example.urbanease.screens.owner.RequestDetailScreen
+import com.example.urbanease.screens.owner.RequestsScreen
+import com.example.urbanease.screens.owner.SettingsScreen
 import com.example.urbanease.screens.owner.add.AdSummaryScreen
 import com.example.urbanease.screens.owner.add.LocationScreen
 import com.example.urbanease.screens.owner.add.PhotoScreen
@@ -45,6 +49,30 @@ fun UrbanNavigation(navController: NavHostController) {
 
         composable(UrbanScreens.AdminScreen.name) {
             AdminHome(navController = navController)
+        }
+
+        composable(UrbanScreens.RequestsScreen.name) {
+            RequestsScreen(navController = navController)
+        }
+
+        composable(
+            route = "${UrbanScreens.PropertyDetailScreen.name}/{propertyId}",
+            arguments = listOf(navArgument("propertyId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
+            PropertyDetailScreen(navController = navController, propertyId = propertyId)
+        }
+
+        composable(
+            route = "${UrbanScreens.RequestDetailScreen.name}/{requestId}",
+            arguments = listOf(navArgument("requestId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
+            RequestDetailScreen(navController = navController, requestId = requestId)
+        }
+
+        composable(UrbanScreens.SettingsScreen.name) {
+            SettingsScreen(navController = navController)
         }
 
         composable(

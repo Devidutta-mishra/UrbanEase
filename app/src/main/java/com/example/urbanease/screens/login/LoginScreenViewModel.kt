@@ -70,6 +70,8 @@ class LoginScreenViewModel : ViewModel() {
         email: String,
         password: String,
         role: String,
+        displayName: String,
+        phoneNumber: String,
         home: () -> Unit
     ) {
 
@@ -98,14 +100,14 @@ class LoginScreenViewModel : ViewModel() {
         auth.createUserWithEmailAndPassword(cleanEmail, cleanPassword)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val displayName = task.result?.user?.email?.split('@')?.get(0)
                     val userId = auth.currentUser?.uid
 
                     val user = MUser(
                         userId = userId.toString(),
-                        displayName = displayName.toString(),
+                        displayName = displayName,
                         avatarUrl = "",
                         role = role,
+                        phoneNumber = phoneNumber,
                         id = null
                     ).toMap()
 

@@ -95,8 +95,8 @@ fun LoginScreen(
             loading = loading,
             error = error,
             onBack = { showLoginForm.value = true },
-            onSignUp = { email, password, role ->
-                viewModel.createUserWithEmailAndPassword(email, password, role) {
+            onSignUp = { email, password, role, name, phone ->
+                viewModel.createUserWithEmailAndPassword(email, password, role, name, phone) {
                     when (role) {
                         "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
                         "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
@@ -258,7 +258,7 @@ fun CreateAccountContent(
     loading: Boolean,
     error: String?,
     onBack: () -> Unit,
-    onSignUp: (String, String, String) -> Unit,
+    onSignUp: (String, String, String, String, String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val nameState = rememberSaveable { mutableStateOf("") }
@@ -371,7 +371,7 @@ fun CreateAccountContent(
             label = "PHONE NUMBER",
             value = phoneState.value,
             onValueChange = { phoneState.value = it },
-            placeholder = "+1 (555) 000-0000",
+            placeholder = "+91",
             icon = Icons.Default.Phone
         )
         Spacer(modifier = Modifier.height(10.dp))
@@ -409,7 +409,7 @@ fun CreateAccountContent(
         }
 
         Button(
-            onClick = { onSignUp(email, password, selectedRole.value) },
+            onClick = { onSignUp(email, password, selectedRole.value, nameState.value, phoneState.value) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

@@ -122,10 +122,12 @@ class PostAdViewModel @Inject constructor() : ViewModel() {
                     ownerId = userId,
                     houseId = houseId,
                     imageUrls = urls,
-                    isApproved = false // Set default to false for admin approval
+                    isApproved = false,
+                    status = "pending",
+                    createdAt = System.currentTimeMillis()
                 )
 
-                FirebaseFirestore.getInstance().collection("ads")
+                FirebaseFirestore.getInstance().collection("properties")
                     .document(houseId)
                     .set(adWithDetails)
                     .addOnSuccessListener {
