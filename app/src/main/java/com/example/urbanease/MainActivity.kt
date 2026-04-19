@@ -34,12 +34,7 @@ class MainActivity : ComponentActivity() {
 fun UrbanEase() {
     val navController = rememberNavController()
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            UrbanNavigation(navController = navController)
-        }
+        UrbanNavigation(navController = navController)
     }
 }
 

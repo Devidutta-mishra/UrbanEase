@@ -24,6 +24,7 @@ import com.example.urbanease.screens.owner.add.LocationScreen
 import com.example.urbanease.screens.owner.add.PhotoScreen
 import com.example.urbanease.screens.owner.add.RentScreen
 import com.example.urbanease.screens.splash.SplashScreen
+import com.example.urbanease.ui.animations.ScreenTransitions
 
 @Composable
 fun UrbanNavigation(navController: NavHostController) {
@@ -35,29 +36,51 @@ fun UrbanNavigation(navController: NavHostController) {
             SplashScreen(navController = navController)
         }
 
-        composable(UrbanScreens.LoginScreen.name) {
+        composable(
+            route = UrbanScreens.LoginScreen.name,
+            enterTransition = { ScreenTransitions.fadeInTransition() },
+            exitTransition = { ScreenTransitions.fadeOutTransition() }
+        ) {
             LoginScreen(navController = navController)
         }
 
-        composable(UrbanScreens.BachelorScreen.name) {
+        composable(
+            route = UrbanScreens.BachelorScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
             BachelorHome(navController = navController)
         }
 
-        composable(UrbanScreens.OwnerScreen.name) {
+        composable(
+            route = UrbanScreens.OwnerScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
             OwnerHome(navController = navController)
         }
 
-        composable(UrbanScreens.AdminScreen.name) {
+        composable(
+            route = UrbanScreens.AdminScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
             AdminHome(navController = navController)
         }
 
-        composable(UrbanScreens.RequestsScreen.name) {
+        composable(
+            route = UrbanScreens.RequestsScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
             RequestsScreen(navController = navController)
         }
 
         composable(
             route = "${UrbanScreens.PropertyDetailScreen.name}/{propertyId}",
-            arguments = listOf(navArgument("propertyId") { type = NavType.StringType })
+            arguments = listOf(navArgument("propertyId") { type = NavType.StringType }),
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
         ) { backStackEntry ->
             val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
             PropertyDetailScreen(navController = navController, propertyId = propertyId)
@@ -65,19 +88,27 @@ fun UrbanNavigation(navController: NavHostController) {
 
         composable(
             route = "${UrbanScreens.RequestDetailScreen.name}/{requestId}",
-            arguments = listOf(navArgument("requestId") { type = NavType.StringType })
+            arguments = listOf(navArgument("requestId") { type = NavType.StringType }),
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
         ) { backStackEntry ->
             val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
             RequestDetailScreen(navController = navController, requestId = requestId)
         }
 
-        composable(UrbanScreens.SettingsScreen.name) {
+        composable(
+            route = UrbanScreens.SettingsScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
             SettingsScreen(navController = navController)
         }
 
         composable(
             route = "${UrbanScreens.DetailScreen.name}/{houseId}",
-            arguments = listOf(navArgument("houseId") { type = NavType.StringType })
+            arguments = listOf(navArgument("houseId") { type = NavType.StringType }),
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
         ) { backStackEntry ->
             val houseId = backStackEntry.arguments?.getString("houseId") ?: ""
             DetailScreen(navController = navController, houseId = houseId)
@@ -85,9 +116,15 @@ fun UrbanNavigation(navController: NavHostController) {
 
         navigation(
             startDestination = UrbanScreens.LocationScreen.name,
-            route = "post_ad_graph"
+            route = "post_ad_graph",
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
         ) {
-            composable(UrbanScreens.LocationScreen.name) { navBackStackEntry ->
+            composable(
+                route = UrbanScreens.LocationScreen.name,
+                enterTransition = { ScreenTransitions.fadeInTransition() },
+                exitTransition = { ScreenTransitions.fadeOutTransition() }
+            ) { navBackStackEntry ->
                 val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
@@ -95,7 +132,11 @@ fun UrbanNavigation(navController: NavHostController) {
                 LocationScreen(navController = navController, viewModel = viewModel)
             }
 
-            composable(UrbanScreens.RentScreen.name) { navBackStackEntry ->
+            composable(
+                route = UrbanScreens.RentScreen.name,
+                enterTransition = { ScreenTransitions.slideInLeftTransition() },
+                exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+            ) { navBackStackEntry ->
                 val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
@@ -103,7 +144,11 @@ fun UrbanNavigation(navController: NavHostController) {
                 RentScreen(navController = navController, viewModel = viewModel)
             }
 
-            composable(UrbanScreens.PhotoScreen.name) { navBackStackEntry ->
+            composable(
+                route = UrbanScreens.PhotoScreen.name,
+                enterTransition = { ScreenTransitions.slideInLeftTransition() },
+                exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+            ) { navBackStackEntry ->
                 val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }
@@ -111,7 +156,11 @@ fun UrbanNavigation(navController: NavHostController) {
                 PhotoScreen(navController = navController, viewModel = viewModel)
             }
 
-            composable(UrbanScreens.AdSummaryScreen.name) { navBackStackEntry ->
+            composable(
+                route = UrbanScreens.AdSummaryScreen.name,
+                enterTransition = { ScreenTransitions.slideInLeftTransition() },
+                exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+            ) { navBackStackEntry ->
                 val parentEntry = remember(navBackStackEntry) {
                     navController.getBackStackEntry("post_ad_graph")
                 }

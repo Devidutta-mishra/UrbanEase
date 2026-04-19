@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -64,6 +66,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
 import com.example.urbanease.data.PropertyAd
 import com.example.urbanease.navigation.UrbanScreens
+import com.example.urbanease.ui.theme.BrandGreen
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Locale
 
@@ -90,6 +93,7 @@ fun BachelorHome(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(paddingValues)
         ) {
             // Search Bar Area
@@ -165,11 +169,37 @@ fun BachelorHome(
                         color = Color(0xFF245D69)
                     )
                 } else if (ads.isEmpty()) {
-                    Text(
-                        text = "No properties found.",
-                        modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp), 
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Image(
+                                painter = painterResource(id = R.drawable.houseimage),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .clip(RoundedCornerShape(32.dp)),
+                                contentScale = ContentScale.Crop,
+                                alpha = 0.5f
+                            )
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Text(
+                                "No properties found",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2C3E50)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Try adjusting your filters or search criteria.",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -226,7 +256,7 @@ fun BachelorPropertyCard(ad: PropertyAd, onClick: () -> Unit) {
         ) {
             Image(
                 painter = if (ad.imageUrls.isNotEmpty()) rememberAsyncImagePainter(ad.imageUrls.first()) 
-                          else painterResource(id = R.drawable.istockphoto_856794670_612x612),
+                          else painterResource(id = R.drawable.houseimage),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -355,50 +385,63 @@ fun InfoBadge(icon: ImageVector, text: String) {
 @Composable
 fun BottomNavigationBar() {
     NavigationBar(
+        modifier = Modifier.navigationBarsPadding(),
         containerColor = Color.White,
         tonalElevation = 12.dp
     ) {
+        val selectedColor = BrandGreen // Industry Standard Green
+        val unselectedColor = Color.DarkGray
+
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("HOME") },
+            label = { Text("Home", fontWeight = FontWeight.Bold) },
             selected = true,
             onClick = { },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color(0xFF245D69),
-                selectedTextColor = Color(0xFF245D69),
-                unselectedIconColor = Color(0xFFBDC3C7),
-                unselectedTextColor = Color(0xFFBDC3C7),
-                indicatorColor = Color(0xFFE0F2F1)
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
             )
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.DateRange, contentDescription = "Bookings") },
-            label = { Text("BOOKINGS") },
+            label = { Text("Bookings") },
             selected = false,
             onClick = { },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Color(0xFFBDC3C7),
-                unselectedTextColor = Color(0xFFBDC3C7)
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
             )
         )
         NavigationBarItem(
             icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Dashboard") },
-            label = { Text("DASHBOARD") },
+            label = { Text("Dashboard") },
             selected = false,
             onClick = { },
              colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Color(0xFFBDC3C7),
-                unselectedTextColor = Color(0xFFBDC3C7)
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
             )
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-            label = { Text("PROFILE") },
+            label = { Text("Profile") },
             selected = false,
             onClick = { },
              colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Color(0xFFBDC3C7),
-                unselectedTextColor = Color(0xFFBDC3C7)
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
             )
         )
     }

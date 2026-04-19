@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.urbanease.ui.theme.BrandGreen
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
@@ -37,6 +38,15 @@ fun OwnerHome(
     val isLoading = viewModel.isLoading.value
 
     Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .background(Color.White)
+                    .statusBarsPadding()
+            ) {
+                OwnerHeader()
+            }
+        },
         bottomBar = { OwnerBottomNavigation(navController, "home") }
     ) { padding ->
         Column(
@@ -45,8 +55,6 @@ fun OwnerHome(
                 .padding(padding)
                 .background(Color(0xFFF8F9FA))
         ) {
-            OwnerHeader()
-            
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
@@ -56,11 +64,12 @@ fun OwnerHome(
                     Text(
                         text = "My Properties",
                         style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
                     Text(
                         text = "Manage your portfolio and track listing statuses.",
-                        color = Color.Gray,
+                        color = Color.DarkGray,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -79,8 +88,49 @@ fun OwnerHome(
                     }
                 } else if (ads.isEmpty()) {
                     item {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("No properties found.")
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 64.dp), 
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.houseimage),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(180.dp)
+                                        .clip(RoundedCornerShape(24.dp)),
+                                    contentScale = ContentScale.Crop,
+                                    alpha = 0.6f
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text(
+                                    "No properties yet",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Your listed properties will appear here.",
+                                    color = Color.DarkGray,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(32.dp))
+                                Button(
+                                    onClick = { navController.navigate(UrbanScreens.LocationScreen.name) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = BrandGreen
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.height(48.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("List Property", fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 } else {
@@ -105,12 +155,12 @@ fun OwnerHeader() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF00796B))
+            Icon(Icons.Default.Search, contentDescription = "Search", tint = BrandGreen)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("UrbanEase", fontWeight = FontWeight.Bold, color = Color(0xFF00796B), fontSize = 20.sp)
+            Text("UrbanEase", fontWeight = FontWeight.Bold, color = Color(0xFF050234), fontSize = 20.sp)
         }
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_background), // Placeholder
+            painter = painterResource(id = R.drawable.profile), // Placeholder
             contentDescription = "Profile",
             modifier = Modifier
                 .size(40.dp)
@@ -136,13 +186,23 @@ fun StatsGrid(viewModel: OwnerHomeViewModel) {
 @Composable
 fun StatCard(label: String, value: String, modifier: Modifier = Modifier, bgColor: Color = Color.White, textColor: Color = Color.Black) {
     Card(
-        modifier = modifier,
+        modifier = modifier.height(90.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxSize(),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black.copy(alpha = 0.6f),
+                lineHeight = 12.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = textColor)
         }
     }
@@ -161,7 +221,8 @@ fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
         Column {
             Box {
                 Image(
-                    painter = rememberAsyncImagePainter(ad.imageUrls.firstOrNull()),
+                    painter = if (ad.imageUrls.isNotEmpty()) rememberAsyncImagePainter(ad.imageUrls.first()) 
+                              else painterResource(id = R.drawable.houseimage),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -177,8 +238,8 @@ fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(ad.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Icon(Icons.Default.MoreVert, contentDescription = null)
+                    Text(ad.title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
+                    Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.Black)
                 }
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -209,7 +270,7 @@ fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                 ) {
                     Column {
                         Text("MONTHLY RENT", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-                        Text("$${ad.rent}/mo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF00796B))
+                        Text("$${ad.rent}/mo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BrandGreen)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(16.dp)) // Placeholder for bed icon
@@ -255,30 +316,65 @@ fun StatusBadge(ad: PropertyAd) {
 
 @Composable
 fun OwnerBottomNavigation(navController: NavController, currentScreen: String) {
-    NavigationBar(containerColor = Color.White) {
+    NavigationBar(
+        modifier = Modifier.navigationBarsPadding(),
+        containerColor = Color.White,
+        tonalElevation = 8.dp
+    ) {
+        val selectedColor = BrandGreen // Industry Standard Green
+        val unselectedColor = Color.DarkGray
+
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("Home") },
+            label = { Text("Home", fontWeight = if(currentScreen == "home") FontWeight.Bold else FontWeight.Normal) },
             selected = currentScreen == "home",
-            onClick = { navController.navigate(UrbanScreens.OwnerScreen.name) }
+            onClick = { navController.navigate(UrbanScreens.OwnerScreen.name) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
+            )
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.AddCircle, contentDescription = "Add") },
-            label = { Text("Add") },
+            label = { Text("Add", fontWeight = if(currentScreen == "add") FontWeight.Bold else FontWeight.Normal) },
             selected = currentScreen == "add",
-            onClick = { navController.navigate(UrbanScreens.LocationScreen.name) }
+            onClick = { navController.navigate(UrbanScreens.LocationScreen.name) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
+            )
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.List, contentDescription = "Requests") },
-            label = { Text("Requests") },
+            label = { Text("Requests", fontWeight = if(currentScreen == "requests") FontWeight.Bold else FontWeight.Normal) },
             selected = currentScreen == "requests",
-            onClick = { navController.navigate(UrbanScreens.RequestsScreen.name) }
+            onClick = { navController.navigate(UrbanScreens.RequestsScreen.name) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
+            )
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Person, contentDescription = "Settings") },
-            label = { Text("Settings") },
+            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+            label = { Text("Settings", fontWeight = if(currentScreen == "settings") FontWeight.Bold else FontWeight.Normal) },
             selected = currentScreen == "settings",
-            onClick = { navController.navigate(UrbanScreens.SettingsScreen.name) }
+            onClick = { navController.navigate(UrbanScreens.SettingsScreen.name) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = selectedColor,
+                selectedTextColor = selectedColor,
+                unselectedIconColor = unselectedColor,
+                unselectedTextColor = unselectedColor,
+                indicatorColor = selectedColor.copy(alpha = 0.1f)
+            )
         )
     }
 }

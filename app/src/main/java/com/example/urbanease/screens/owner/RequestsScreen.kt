@@ -27,6 +27,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
 import com.example.urbanease.model.MUser
 import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.ui.theme.BrandGreen
 import com.example.urbanease.navigation.UrbanScreens
 
 @Composable
@@ -38,6 +39,15 @@ fun RequestsScreen(
     val isLoading = viewModel.isLoading.value
 
     Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .background(Color.White)
+                    .statusBarsPadding()
+            ) {
+                OwnerHeader()
+            }
+        },
         bottomBar = { OwnerBottomNavigation(navController, "requests") }
     ) { padding ->
         Column(
@@ -46,8 +56,6 @@ fun RequestsScreen(
                 .padding(padding)
                 .background(Color(0xFFF8F9FA))
         ) {
-            OwnerHeader()
-            
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
@@ -57,11 +65,12 @@ fun RequestsScreen(
                     Text(
                         text = "Requests",
                         style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
                     Text(
                         text = "Review pending booking inquiries.",
-                        color = Color.Gray,
+                        color = Color.DarkGray,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -75,8 +84,40 @@ fun RequestsScreen(
                     }
                 } else if (requests.isEmpty()) {
                     item {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("No booking requests found.")
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 64.dp), 
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .background(Color(0xFFE8F5E9), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.MailOutline, 
+                                        contentDescription = null,
+                                        modifier = Modifier.size(60.dp),
+                                        tint = BrandGreen
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text(
+                                    "No requests yet",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Booking requests from tenants will show up here.",
+                                    color = Color.DarkGray,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                 } else {
@@ -132,7 +173,7 @@ fun RequestCard(
                     )
                 } else {
                     val initials = requestDetail.user?.displayName?.take(2)?.uppercase() ?: "U"
-                    Text(initials, color = Color(0xFF00796B), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text(initials, color = BrandGreen, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
             }
             
@@ -143,7 +184,8 @@ fun RequestCard(
                     Text(
                         requestDetail.user?.displayName ?: "Unknown User",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = Color.Black
                     )
                     if (requestDetail.request.status == "pending") {
                         Spacer(modifier = Modifier.width(8.dp))
@@ -163,9 +205,9 @@ fun RequestCard(
                 }
                 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Icon(Icons.Default.Build, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(14.dp)) // Using Build as placeholder for Building icon
+                    Icon(Icons.Default.Build, contentDescription = null, tint = Color.DarkGray, modifier = Modifier.size(14.dp)) // Using Build as placeholder for Building icon
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(requestDetail.property?.title ?: "Unknown Property", color = Color.Gray, fontSize = 14.sp)
+                    Text(requestDetail.property?.title ?: "Unknown Property", color = Color.DarkGray, fontSize = 14.sp)
                 }
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -197,7 +239,10 @@ fun RequestCard(
                         Button(
                             onClick = onAccept,
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00796B)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BrandGreen, // Industry Standard Green
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text("Accept", color = Color.White)

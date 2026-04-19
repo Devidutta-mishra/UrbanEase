@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.data.Booking
 import com.example.urbanease.data.PropertyAd
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -69,6 +68,7 @@ fun DetailScreen(navController: NavController, houseId: String) {
         Scaffold(
             topBar = {
                 TopAppBar(
+                    modifier = Modifier.statusBarsPadding(),
                     title = { Text("Property Details") },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
@@ -162,7 +162,7 @@ fun DetailScreen(navController: NavController, houseId: String) {
                         )
                     } else {
                         Image(
-                            painter = painterResource(id = R.drawable.istockphoto_856794670_612x612),
+                            painter = painterResource(id = R.drawable.houseimage),
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop

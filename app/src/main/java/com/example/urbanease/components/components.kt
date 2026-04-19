@@ -1,7 +1,12 @@
 package com.example.urbanease.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,10 +43,12 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -55,6 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.urbanease.navigation.UrbanScreens
+import com.example.urbanease.ui.animations.AnimationDurations
+import com.example.urbanease.ui.animations.AnimationEasings
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -111,8 +120,9 @@ fun PasswordInput(
                     disabledContainerColor = Color.Transparent,
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.LightGray,
-                    unfocusedLabelColor = Color.LightGray
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Gray,
+                    cursorColor = Color.Black
                 )
             )
         }
@@ -197,10 +207,11 @@ fun InputField(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     disabledContainerColor = Color.Transparent,
-                    focusedTextColor = Color.DarkGray,
-                    unfocusedTextColor = Color.Gray,
-                    focusedLabelColor = Color.DarkGray,
-                    unfocusedLabelColor = Color.Gray
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Gray,
+                    cursorColor = Color.Black
                 )
             )
         }
@@ -429,3 +440,127 @@ fun BottomNavigationBar(
 ) {
     // Kept for backward compatibility if needed, but OwnerBottomNavigationBar is preferred for new design
 }
+
+/**
+ * Animated Button Wrapper
+ * Adds scale animation (0.95f) on press for instant visual feedback
+ */
+@Composable
+fun AnimatedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: androidx.compose.material3.ButtonColors = ButtonDefaults.buttonColors(),
+    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    content: @Composable () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    var isPressed = false
+
+    // Detect press state from interaction source
+    androidx.compose.runtime.LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is androidx.compose.foundation.interaction.PressInteraction.Press -> {
+                    isPressed = true
+                }
+                is androidx.compose.foundation.interaction.PressInteraction.Release -> {
+                    isPressed = false
+                }
+                is androidx.compose.foundation.interaction.PressInteraction.Cancel -> {
+                    isPressed = false
+                }
+            }
+        }
+    }
+
+    Button(
+        onClick = onClick,
+        modifier = modifier.graphicsLayer(
+            scaleX = if (isPressed) 0.95f else 1f,
+            scaleY = if (isPressed) 0.95f else 1f,
+            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+        ),
+        enabled = enabled,
+        colors = colors,
+        shape = shape,
+        interactionSource = interactionSource
+    ) {
+        content()
+    }
+}
+
+/**
+ * Animated Input Field with Fade + Slide Entry Animation
+ * @param index Used for staggered animation effect
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnimatedInputField(
+    modifier: Modifier = Modifier,
+    valueState: MutableState<String>,
+    labelId: String,
+    enabled: Boolean = true,
+    isSingleLine: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    imeAction: ImeAction = ImeAction.Next,
+    onAction: KeyboardActions = KeyboardActions.Default,
+    index: Int = 0
+) {
+    AnimatedVisibility(
+        visible = true,
+        enter = slideInVertically(
+            initialOffsetY = { fullHeight -> fullHeight / 4 },
+            animationSpec = tween(
+                durationMillis = AnimationDurations.NORMAL,
+                delayMillis = index * 50,
+                easing = AnimationEasings.DEFAULT
+            )
+        ) + fadeIn(
+            animationSpec = tween(
+                durationMillis = AnimationDurations.NORMAL,
+                delayMillis = index * 50,
+                easing = AnimationEasings.DEFAULT
+            )
+        )
+    ) {
+        InputField(
+            modifier = modifier,
+            valueState = valueState,
+            labelId = labelId,
+            enabled = enabled,
+            isSingleLine = isSingleLine,
+            keyboardType = keyboardType,
+            imeAction = imeAction,
+            onAction = onAction
+        )
+    }
+}
+
+/**
+ * Animated Loading Indicator
+ * Lightweight circular progress with fade animation
+ */
+@Composable
+fun AnimatedLoadingIndicator(
+    isLoading: Boolean = true,
+    color: Color = Color.Black,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = isLoading,
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = AnimationDurations.FAST,
+                easing = AnimationEasings.DEFAULT
+            )
+        )
+    ) {
+        androidx.compose.material3.CircularProgressIndicator(
+            modifier = modifier.size(48.dp),
+            color = color,
+            strokeWidth = 4.dp
+        )
+    }
+}
+

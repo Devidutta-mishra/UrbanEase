@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.urbanease.R
+import com.example.urbanease.ui.theme.BrandGreen
 import com.example.urbanease.navigation.UrbanScreens
 import com.google.firebase.auth.FirebaseAuth
 
@@ -30,6 +31,15 @@ fun SettingsScreen(navController: NavController) {
     val user = FirebaseAuth.getInstance().currentUser
 
     Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .background(Color.White)
+                    .statusBarsPadding()
+            ) {
+                OwnerHeader()
+            }
+        },
         bottomBar = { OwnerBottomNavigation(navController, "settings") }
     ) { padding ->
         Column(
@@ -39,8 +49,6 @@ fun SettingsScreen(navController: NavController) {
                 .background(Color(0xFFF8F9FA))
                 .verticalScroll(rememberScrollState())
         ) {
-            OwnerHeader()
-            
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -73,11 +81,12 @@ fun SettingsScreen(navController: NavController) {
                         Text(
                             text = user?.displayName ?: "Alex Mercer",
                             fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
                         Text(
                             text = "Owner • 3 Properties", // Dynamic properties count can be added
-                            color = Color.Gray,
+                            color = Color.DarkGray,
                             fontSize = 14.sp
                         )
                     }
@@ -133,16 +142,16 @@ fun SettingsItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: S
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    color = Color(0xFFE0F2F1),
+                    color = Color(0xFFE8F5E9),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.size(40.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, tint = Color(0xFF00796B), modifier = Modifier.size(20.dp))
+                        Icon(icon, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(20.dp))
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(title, fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                Text(title, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = Color.Black)
             }
             Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.LightGray)
         }

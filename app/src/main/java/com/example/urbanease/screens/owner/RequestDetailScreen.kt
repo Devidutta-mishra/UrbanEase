@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
+import com.example.urbanease.ui.theme.BrandGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,12 +45,22 @@ fun RequestDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.statusBarsPadding(),
                 title = { Text("Request Details") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = "Back",
+                            tint = BrandGreen
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                )
             )
         }
     ) { padding ->
@@ -83,7 +94,7 @@ fun RequestDetailScreen(
                         )
                     } else {
                         val initials = detail.user?.displayName?.take(2)?.uppercase() ?: "U"
-                        Text(initials, color = Color(0xFF00796B), fontWeight = FontWeight.Bold, fontSize = 40.sp)
+                        Text(initials, color = BrandGreen, fontWeight = FontWeight.Bold, fontSize = 40.sp)
                     }
                 }
                 
@@ -110,7 +121,7 @@ fun RequestDetailScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF00796B))
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = BrandGreen)
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(detail.user?.phoneNumber ?: "Not provided", fontSize = 16.sp)
                         }
@@ -118,7 +129,7 @@ fun RequestDetailScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF00796B))
+                            Icon(Icons.Default.Email, contentDescription = null, tint = BrandGreen)
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(detail.user?.userId ?: "User ID: ${detail.user?.userId}", fontSize = 14.sp)
                         }
@@ -161,7 +172,10 @@ fun RequestDetailScreen(
                         Button(
                             onClick = { viewModel.updateRequestStatus(requestId, "accepted") },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00796B)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BrandGreen,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = PaddingValues(16.dp)
                         ) {

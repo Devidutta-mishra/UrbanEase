@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +61,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.urbanease.ui.theme.BrandGreen
 import androidx.navigation.NavController
 import com.example.urbanease.R
 import com.example.urbanease.navigation.UrbanScreens
@@ -125,6 +127,7 @@ fun LoginContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(Color(0xFFE8F1F2), Color.White)
@@ -210,7 +213,10 @@ fun LoginContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF245D69)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BrandGreen, // Industry Standard Green
+                contentColor = Color.White
+            ),
             shape = RoundedCornerShape(12.dp),
             enabled = !loading && viewModel.emailError.value == null && viewModel.passwordError.value == null && email.isNotEmpty() && password.isNotEmpty()
         ) {
@@ -271,6 +277,7 @@ fun CreateAccountContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .background(Color.White)
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
@@ -413,7 +420,10 @@ fun CreateAccountContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF245D69)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BrandGreen, // Industry Standard Green
+                contentColor = Color.White
+            ),
             shape = RoundedCornerShape(12.dp),
             enabled = !loading &&
                     termsAccepted.value &&
@@ -504,8 +514,12 @@ fun CustomInputField(
                 focusedBorderColor = Color(0xFF245D69),
                 unfocusedBorderColor = Color(0xFFEEEEEE),
                 focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                unfocusedContainerColor = Color.White,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                cursorColor = Color.Black
             ),
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +48,7 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.data.PropertyAd
 import com.example.urbanease.model.MUser
+import com.example.urbanease.ui.theme.BrandGreen
 import com.example.urbanease.navigation.UrbanScreens
 import com.google.firebase.auth.FirebaseAuth
 
@@ -58,6 +61,7 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.statusBarsPadding(),
                 title = { Text("Admin Dashboard") },
                 actions = {
                     IconButton(onClick = {
@@ -143,9 +147,9 @@ fun UsersTab(users: List<MUser>, title: String) {
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Name: ${user.displayName}", fontWeight = FontWeight.Bold)
-                        Text(text = "Email: ${user.userId}")
-                        Text(text = "Role: ${user.role}")
+                        Text(text = "Name: ${user.displayName}", fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text(text = "Email: ${user.userId}", color = Color.DarkGray)
+                        Text(text = "Role: ${user.role}", color = Color.DarkGray)
                     }
                 }
             }
@@ -158,18 +162,18 @@ fun AdminAdCard(ad: PropertyAd, onApprove: () -> Unit = {}, onReject: () -> Unit
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column {
             Box {
-                if (ad.imageUrls.isNotEmpty()) {
-                    Image(
-                        painter = rememberAsyncImagePainter(ad.imageUrls.first()),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(150.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                Image(
+                    painter = if (ad.imageUrls.isNotEmpty()) rememberAsyncImagePainter(ad.imageUrls.first()) 
+                              else painterResource(id = com.example.urbanease.R.drawable.houseimage),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    contentScale = ContentScale.Crop
+                )
                 
                 // Status Badge
                 Surface(
@@ -200,9 +204,9 @@ fun AdminAdCard(ad: PropertyAd, onApprove: () -> Unit = {}, onReject: () -> Unit
             }
 
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = ad.title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(text = "Location: ${ad.location}", color = Color.Gray)
-                Text(text = "Rent: ₹${ad.rent}", fontWeight = FontWeight.SemiBold, color = Color(0xFF006874))
+                Text(text = ad.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(text = "Location: ${ad.location}", color = Color.DarkGray)
+                Text(text = "Rent: ₹${ad.rent}", fontWeight = FontWeight.SemiBold, color = BrandGreen)
                 
                 if (showActions) {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -218,7 +222,10 @@ fun AdminAdCard(ad: PropertyAd, onApprove: () -> Unit = {}, onReject: () -> Unit
                             Spacer(modifier = Modifier.width(8.dp))
                             Button(
                                 onClick = onApprove,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38B6FF)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = BrandGreen, // Industry Standard Green
+                                    contentColor = Color.White
+                                ),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text("Approve")
@@ -226,7 +233,10 @@ fun AdminAdCard(ad: PropertyAd, onApprove: () -> Unit = {}, onReject: () -> Unit
                         } else if (ad.status == "rejected") {
                              Button(
                                 onClick = onApprove,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38B6FF)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = BrandGreen, // Industry Standard Green
+                                    contentColor = Color.White
+                                ),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text("Approve Anyway")

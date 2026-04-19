@@ -1,41 +1,48 @@
 package com.example.urbanease.screens.owner.add
 
 import android.annotation.SuppressLint
-import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.urbanease.components.Appbar
-import com.example.urbanease.components.BottomButton
+import com.example.urbanease.components.AnimatedButton
 import com.example.urbanease.model.PostAdViewModel
 import com.example.urbanease.navigation.UrbanScreens
+import com.example.urbanease.ui.animations.AnimationDurations
+import com.example.urbanease.ui.animations.AnimationEasings
+import com.example.urbanease.ui.theme.BrandGreen
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -45,95 +52,133 @@ fun LocationScreen(
 ) {
     val selectedLocation = rememberSaveable { mutableStateOf<String?>(null) }
 
-    Box(
-        modifier = Modifier
-            .padding(WindowInsets.statusBars.asPaddingValues())
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        Scaffold(
-            topBar = {
-                Appbar(
-                    title = "Location",
-                    navController = navController,
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    showProfile = false
-                ) {
-                    navController.popBackStack()
-                }
-            },
-            bottomBar = {
-                BottomButton(
-                    onClick = {
-                        selectedLocation.value?.let { location ->
-                            Log.d("LocationScreen", "Selected location: $location")
-                            viewModel.updateLocation(location)
-                            Log.d("LocationScreen", "updateLocation called with: $location")
-                            navController.navigate(UrbanScreens.RentScreen.name) // Change to your actual next screen
-                        }
-                    }
-                )
-            },
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0)
-        ) {
-//            HorizontalDivider(modifier = Modifier.padding(top = 50.dp))
-            Surface(
-                modifier = Modifier.padding(top = 60.dp, start = 5.dp, end = 5.dp),
-                color = Color.Transparent
+    Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                LocationBox(
-                    selectedLocation = selectedLocation,
-                    onLocationSelected = { location ->
-                        selectedLocation.value = location
-                    }
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFF7F7F7), CircleShape)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        modifier = Modifier.size(20.dp),
+                        tint = BrandGreen // Industry Standard Green
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Where is your\nproperty located?",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 36.sp,
+                    color = Color.Black
+                )
+                Text(
+                    text = "Select the neighborhood to help tenants find you.",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun LocationBox(
-    selectedLocation: MutableState<String?>,
-    onLocationSelected: (String) -> Unit
-) {
-    val locations = listOf("Patia", "Khandagiri", "Ganga Nagar", "Siripur", "Jaydev Vihar")
-
-    Column(
-        modifier = Modifier
-            .padding(horizontal = 5.dp)
-    ) {
-        locations.forEach { location ->
-            val isSelected = selectedLocation.value == location
+        },
+        bottomBar = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = if (isSelected) 3.dp else 12.dp)
-                    .padding(vertical = 8.dp)
-                    .shadow(
-                        elevation = if (isSelected) 7.dp else 6.dp,
-                        shape = RoundedCornerShape(15.dp)
-                    )
-                    .clip(RoundedCornerShape(15.dp))
-                    .clickable {
-                        selectedLocation.value = location
-                        onLocationSelected(location)
-                    }
-                    .border(
-                        width = 2.dp,
-                        color = if (isSelected) Color.Black.copy(alpha = 0.27f) else Color.Transparent,
-                        shape = RoundedCornerShape(15.dp)
-                    )
-                    .background(Color.White)
+                    .navigationBarsPadding()
+                    .padding(24.dp)
             ) {
-                Text(
-                    text = location,
-                    modifier = Modifier.padding(16.dp),
-                    color = if (isSelected) Color.Black else Color.Black.copy(alpha = 0.7f),
-                    fontSize = 20.sp,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                )
+                AnimatedButton(
+                    onClick = {
+                        selectedLocation.value?.let { location ->
+                            viewModel.updateLocation(location)
+                            navController.navigate(UrbanScreens.RentScreen.name)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = selectedLocation.value != null,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen, // Industry Standard Green
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledContentColor = Color.White.copy(alpha = 0.6f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Continue", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        containerColor = Color.White
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .padding(horizontal = 24.dp)
+        ) {
+            val locations = listOf(
+                "Patia",
+                "Khandagiri",
+                "Ganga Nagar",
+                "Siripur",
+                "Jaydev Vihar",
+                "DLF Cyber City",
+                "Chandrasekharpur"
+            )
+
+            items(locations.size) { index ->
+                val location = locations[index]
+                val isSelected = selectedLocation.value == location
+
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight / 4 },
+                        animationSpec = tween(
+                            durationMillis = AnimationDurations.NORMAL,
+                            delayMillis = index * 50,
+                            easing = AnimationEasings.DEFAULT
+                        )
+                    ) + fadeIn(
+                        animationSpec = tween(
+                            durationMillis = AnimationDurations.NORMAL,
+                            delayMillis = index * 50,
+                            easing = AnimationEasings.DEFAULT
+                        )
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (isSelected) Color.Black else Color(0xFFF7F7F7))
+                            .clickable { selectedLocation.value = location }
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = location,
+                            color = if (isSelected) Color.White else Color.Black,
+                            fontSize = 16.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
