@@ -30,9 +30,21 @@ class HouseRepository @Inject constructor() {
                 onResult(emptyList())
                 return@addSnapshotListener
             }
-            val ads = snapshot?.toObjects(PropertyAd::class.java) ?: emptyList()
+            val ads = snapshot?.documents?.mapNotNull { it.toObject(PropertyAd::class.java)?.copy(houseId = it.id) } ?: emptyList()
             onResult(ads)
         }
+    }
+
+    fun listenToApprovedAds(onResult: (List<PropertyAd>) -> Unit): ListenerRegistration {
+        return adsRef.whereEqualTo("isApproved", true)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+                val ads = snapshot?.documents?.mapNotNull { it.toObject(PropertyAd::class.java)?.copy(houseId = it.id) } ?: emptyList()
+                onResult(ads)
+            }
     }
 
     // Keep the one-time fetch methods just in case

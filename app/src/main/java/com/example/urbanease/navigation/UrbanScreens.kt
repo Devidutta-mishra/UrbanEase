@@ -8,6 +8,7 @@ enum class UrbanScreens {
     BachelorScreen,
     OwnerScreen,
     AdminScreen,
+    AdminDetailScreen,
     SearchScreen,
     DetailScreen,
     UpdateScreen,
@@ -33,6 +34,7 @@ enum class UrbanScreens {
             BachelorScreen.name -> BachelorScreen
             OwnerScreen.name -> OwnerScreen
             AdminScreen.name -> AdminScreen
+            AdminDetailScreen.name -> AdminDetailScreen
             LocationScreen.name -> LocationScreen
             RentScreen.name -> RentScreen
             PhotoScreen.name -> PhotoScreen
