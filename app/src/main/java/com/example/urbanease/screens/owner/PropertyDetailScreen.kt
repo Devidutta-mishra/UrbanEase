@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 
@@ -59,7 +60,7 @@ fun PropertyDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Property Details") },
+                title = { Text("Edit Property") },
                 modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -81,11 +82,9 @@ fun PropertyDetailScreen(
     ) { padding ->
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = BrandGreen)
             }
         } else if (property != null) {
-            val isEditable = property.status == "rejected" || !property.isApproved
-            
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -96,91 +95,88 @@ fun PropertyDetailScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                if (isEditable) {
-                    Text("Edit Mode", style = MaterialTheme.typography.titleLarge, color = Color.Black)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    var title by remember { mutableStateOf(property.title) }
-                    var rent by remember { mutableStateOf(property.rent.toString()) }
-                    var description by remember { mutableStateOf(property.description) }
+                Text("Update Listing", style = MaterialTheme.typography.titleLarge, color = Color.Black, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                var title by remember { mutableStateOf(property.title) }
+                var rent by remember { mutableStateOf(property.rent.toString()) }
+                var description by remember { mutableStateOf(property.description) }
 
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Title") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedBorderColor = BrandGreen,
-                            unfocusedBorderColor = Color.Gray,
-                            focusedLabelColor = BrandGreen,
-                            unfocusedLabelColor = Color.Gray
-                        )
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedBorderColor = BrandGreen,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = BrandGreen,
+                        unfocusedLabelColor = Color.Gray
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = rent,
-                        onValueChange = { rent = it },
-                        label = { Text("Rent") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedBorderColor = BrandGreen,
-                            unfocusedBorderColor = Color.Gray,
-                            focusedLabelColor = BrandGreen,
-                            unfocusedLabelColor = Color.Gray
-                        )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = rent,
+                    onValueChange = { rent = it },
+                    label = { Text("Rent") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedBorderColor = BrandGreen,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = BrandGreen,
+                        unfocusedLabelColor = Color.Gray
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedBorderColor = BrandGreen,
-                            unfocusedBorderColor = Color.Gray,
-                            focusedLabelColor = BrandGreen,
-                            unfocusedLabelColor = Color.Gray
-                        )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedBorderColor = BrandGreen,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = BrandGreen,
+                        unfocusedLabelColor = Color.Gray
                     )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Button(
-                        onClick = {
-                            viewModel.updateProperty(property.copy(
-                                title = title,
-                                rent = rent.toLongOrNull() ?: 0L,
-                                description = description
-                            ))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !viewModel.isUpdating.value,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BrandGreen,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        if (viewModel.isUpdating.value) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        else Text("Update Property", fontWeight = FontWeight.Bold)
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Button(
+                    onClick = {
+                        viewModel.updateProperty(property.copy(
+                            title = title,
+                            rent = rent.toLongOrNull() ?: 0L,
+                            description = description
+                        ))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !viewModel.isUpdating.value,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                ) {
+                    if (viewModel.isUpdating.value) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Save Changes", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
-                } else {
-                    Text("Details", style = MaterialTheme.typography.titleLarge, color = Color.Black)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(property.description, color = Color.DarkGray)
-                    // Add more details as needed
                 }
             }
         } else {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Text("Property not found or error loading data.")
+                Text("Property not found.")
             }
         }
     }

@@ -26,7 +26,7 @@ import com.example.urbanease.ui.theme.BrandGreen
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.example.urbanease.navigation.UrbanScreens
 
 @Composable
@@ -68,7 +68,7 @@ fun OwnerHome(
                         color = Color.Black
                     )
                     Text(
-                        text = "Manage your portfolio and track listing statuses.",
+                        text = "Manage your property listings and view interested applicants.",
                         color = Color.DarkGray,
                         fontSize = 14.sp
                     )
@@ -76,14 +76,14 @@ fun OwnerHome(
                 }
 
                 item {
-                    StatsGrid(viewModel)
+                    StatCard("TOTAL PROPERTIES", viewModel.totalProperties.value.toString(), Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
                 if (isLoading) {
                     item {
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(color = BrandGreen)
                         }
                     }
                 } else if (ads.isEmpty()) {
@@ -170,20 +170,6 @@ fun OwnerHeader() {
 }
 
 @Composable
-fun StatsGrid(viewModel: OwnerHomeViewModel) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatCard("TOTAL\nPROPERTIES", viewModel.totalProperties.value.toString(), Modifier.weight(1f))
-            StatCard("APPROVED", viewModel.approvedProperties.value.toString(), Modifier.weight(1f), Color(0xFFE8F5E9), Color(0xFF2E7D32))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatCard("PENDING", viewModel.pendingProperties.value.toString(), Modifier.weight(1f), Color(0xFFFFF3E0), Color(0xFFEF6C00))
-            StatCard("REJECTED", viewModel.rejectedProperties.value.toString(), Modifier.weight(1f), Color(0xFFFFEBEE), Color(0xFFC62828))
-        }
-    }
-}
-
-@Composable
 fun StatCard(label: String, value: String, modifier: Modifier = Modifier, bgColor: Color = Color.White, textColor: Color = Color.Black) {
     Card(
         modifier = modifier.height(90.dp),
@@ -197,19 +183,19 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, bgColo
         ) {
             Text(
                 text = label,
-                fontSize = 10.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black.copy(alpha = 0.6f),
                 lineHeight = 12.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = textColor)
+            Text(value, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = textColor)
         }
     }
 }
 
 @Composable
-fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
+fun PropertyCard(ad: House, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -229,7 +215,6 @@ fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                         .height(200.dp),
                     contentScale = ContentScale.Crop
                 )
-                StatusBadge(ad)
             }
             
             Column(modifier = Modifier.padding(16.dp)) {
@@ -247,21 +232,6 @@ fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                     Text(ad.location, color = Color.Gray, fontSize = 12.sp)
                 }
 
-                if (ad.status == "rejected" && ad.adminNote.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Reason: ${ad.adminNote}",
-                            modifier = Modifier.padding(8.dp),
-                            color = Color(0xFFC62828),
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -270,46 +240,14 @@ fun PropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                 ) {
                     Column {
                         Text("MONTHLY RENT", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-                        Text("$${ad.rent}/mo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BrandGreen)
+                        Text("₹${ad.rent}/mo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BrandGreen)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(16.dp)) // Placeholder for bed icon
-                        Text(" ${ad.rooms}", fontSize = 12.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(16.dp)) // Placeholder for bath icon
-                        Text(" ${ad.bathrooms}", fontSize = 12.sp)
+                        Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(16.dp), tint = BrandGreen)
+                        Text(" ${ad.rooms} BHK", fontSize = 12.sp)
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun StatusBadge(ad: PropertyAd) {
-    val (text, color, bgColor) = when {
-        ad.isApproved -> Triple("APPROVED", Color(0xFF2E7D32), Color(0xFFE8F5E9))
-        ad.status == "rejected" -> Triple("REJECTED", Color(0xFFC62828), Color(0xFFFFEBEE))
-        else -> Triple("PENDING", Color(0xFFEF6C00), Color(0xFFFFF3E0))
-    }
-
-    Surface(
-        color = bgColor,
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.padding(12.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(color)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(text, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -321,7 +259,7 @@ fun OwnerBottomNavigation(navController: NavController, currentScreen: String) {
         containerColor = Color.White,
         tonalElevation = 8.dp
     ) {
-        val selectedColor = BrandGreen // Industry Standard Green
+        val selectedColor = BrandGreen
         val unselectedColor = Color.DarkGray
 
         NavigationBarItem(
@@ -351,8 +289,8 @@ fun OwnerBottomNavigation(navController: NavController, currentScreen: String) {
             )
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.List, contentDescription = "Requests") },
-            label = { Text("Requests", fontWeight = if(currentScreen == "requests") FontWeight.Bold else FontWeight.Normal) },
+            icon = { Icon(Icons.Default.People, contentDescription = "Applicants") },
+            label = { Text("Applicants", fontWeight = if(currentScreen == "requests") FontWeight.Bold else FontWeight.Normal) },
             selected = currentScreen == "requests",
             onClick = { navController.navigate(UrbanScreens.RequestsScreen.name) },
             colors = NavigationBarItemDefaults.colors(

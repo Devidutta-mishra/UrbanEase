@@ -26,9 +26,11 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
 import com.example.urbanease.model.MUser
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.example.urbanease.ui.theme.BrandGreen
 import com.example.urbanease.navigation.UrbanScreens
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun RequestsScreen(
@@ -63,13 +65,13 @@ fun RequestsScreen(
             ) {
                 item {
                     Text(
-                        text = "Requests",
+                        text = "Applicants",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                     Text(
-                        text = "Review pending booking inquiries.",
+                        text = "People interested in your properties.",
                         color = Color.DarkGray,
                         fontSize = 14.sp
                     )
@@ -79,7 +81,7 @@ fun RequestsScreen(
                 if (isLoading) {
                     item {
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(color = BrandGreen)
                         }
                     }
                 } else if (requests.isEmpty()) {
@@ -98,7 +100,7 @@ fun RequestsScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        Icons.Default.MailOutline, 
+                                        Icons.Default.People, 
                                         contentDescription = null,
                                         modifier = Modifier.size(60.dp),
                                         tint = BrandGreen
@@ -106,14 +108,14 @@ fun RequestsScreen(
                                 }
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Text(
-                                    "No requests yet",
+                                    "No applicants yet",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    "Booking requests from tenants will show up here.",
+                                    "Applicants interested in your property will appear here.",
                                     color = Color.DarkGray,
                                     fontSize = 14.sp
                                 )
@@ -124,8 +126,6 @@ fun RequestsScreen(
                     items(requests) { item ->
                         RequestCard(
                             requestDetail = item,
-                            onAccept = { viewModel.updateRequestStatus(item.request.requestId, "accepted") },
-                            onDecline = { viewModel.updateRequestStatus(item.request.requestId, "rejected") },
                             onClick = { navController.navigate("${UrbanScreens.RequestDetailScreen.name}/${item.request.requestId}") }
                         )
                     }
@@ -138,10 +138,11 @@ fun RequestsScreen(
 @Composable
 fun RequestCard(
     requestDetail: RequestWithDetails,
-    onAccept: () -> Unit,
-    onDecline: () -> Unit,
     onClick: () -> Unit
 ) {
+    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateString = dateFormat.format(Date(requestDetail.request.appliedAt))
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -156,7 +157,6 @@ fun RequestCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile image or placeholder
             Box(
                 modifier = Modifier
                     .size(60.dp)
@@ -180,32 +180,15 @@ fun RequestCard(
             Spacer(modifier = Modifier.width(16.dp))
             
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        requestDetail.user?.displayName ?: "Unknown User",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.Black
-                    )
-                    if (requestDetail.request.status == "pending") {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            color = Color(0xFFFFF3E0),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                "NEW",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFEF6C00)
-                            )
-                        }
-                    }
-                }
+                Text(
+                    requestDetail.user?.displayName ?: "Unknown User",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
                 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Icon(Icons.Default.Build, contentDescription = null, tint = Color.DarkGray, modifier = Modifier.size(14.dp)) // Using Build as placeholder for Building icon
+                    Icon(Icons.Default.Home, contentDescription = null, tint = Color.DarkGray, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(requestDetail.property?.title ?: "Unknown Property", color = Color.DarkGray, fontSize = 14.sp)
                 }
@@ -213,7 +196,7 @@ fun RequestCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Oct 12, 2023", color = Color.Gray, fontSize = 12.sp) // Should be formatted from request.createdAt
+                    Text(dateString, color = Color.Gray, fontSize = 12.sp)
                     
                     Spacer(modifier = Modifier.width(12.dp))
                     
@@ -221,43 +204,13 @@ fun RequestCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(requestDetail.user?.phoneNumber ?: "N/A", color = Color.Gray, fontSize = 12.sp)
                 }
-
-                if (requestDetail.request.status == "pending") {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = onDecline,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Decline", color = Color.Black)
-                        }
-                        Button(
-                            onClick = onAccept,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BrandGreen, // Industry Standard Green
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Accept", color = Color.White)
-                        }
-                    }
-                } else {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Status: ${requestDetail.request.status.uppercase()}",
-                        color = if (requestDetail.request.status == "accepted") Color(0xFF2E7D32) else Color(0xFFC62828),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
             }
+            
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color.LightGray
+            )
         }
     }
 }

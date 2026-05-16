@@ -16,7 +16,6 @@ enum class UrbanScreens {
     PhotoScreen,
     LocationScreen,
     AdSummaryScreen,
-    OwnerBookingsScreen,
     PropertyDetailScreen,
     RequestsScreen,
     RequestDetailScreen,
@@ -39,7 +38,6 @@ enum class UrbanScreens {
             RentScreen.name -> RentScreen
             PhotoScreen.name -> PhotoScreen
             AdSummaryScreen.name -> AdSummaryScreen
-            OwnerBookingsScreen.name -> OwnerBookingsScreen
             PropertyDetailScreen.name -> PropertyDetailScreen
             RequestsScreen.name -> RequestsScreen
             RequestDetailScreen.name -> RequestDetailScreen

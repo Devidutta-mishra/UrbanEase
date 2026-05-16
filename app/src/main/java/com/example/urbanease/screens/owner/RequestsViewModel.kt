@@ -5,7 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.urbanease.model.BookingRequest
 import com.example.urbanease.model.MUser
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
+import com.example.urbanease.repository.BookingRepository
+import com.example.urbanease.repository.HouseRepository
+import com.example.urbanease.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,11 +19,15 @@ import javax.inject.Inject
 data class RequestWithDetails(
     val request: BookingRequest,
     val user: MUser?,
-    val property: PropertyAd?
+    val property: House?
 )
 
 @HiltViewModel
-class RequestsViewModel @Inject constructor() : ViewModel() {
+class RequestsViewModel @Inject constructor(
+    private val bookingRepository: BookingRepository,
+    private val userRepository: UserRepository,
+    private val houseRepository: HouseRepository
+) : ViewModel() {
 
     val requests = mutableStateOf<List<RequestWithDetails>>(emptyList())
     val isLoading = mutableStateOf(false)
@@ -43,34 +50,21 @@ class RequestsViewModel @Inject constructor() : ViewModel() {
                 
                 val detailedRequests = requestList.map { request ->
                     val userDoc = FirebaseFirestore.getInstance().collection("users")
-                        .document(request.userId).get().await()
+                        .document(request.bachelorId).get().await()
                     val user = userDoc.toObject(MUser::class.java)
                     
                     val propertyDoc = FirebaseFirestore.getInstance().collection("properties")
                         .document(request.propertyId).get().await()
-                    val property = propertyDoc.toObject(PropertyAd::class.java)
+                    val property = propertyDoc.toObject(House::class.java)
                     
                     RequestWithDetails(request, user, property)
-                }
+                }.sortedByDescending { it.request.appliedAt }
                 
                 requests.value = detailedRequests
             } catch (e: Exception) {
                 // Handle error
             } finally {
                 isLoading.value = false
-            }
-        }
-    }
-
-    fun updateRequestStatus(requestId: String, status: String) {
-        viewModelScope.launch {
-            try {
-                FirebaseFirestore.getInstance().collection("requests")
-                    .document(requestId)
-                    .update("status", status).await()
-                loadRequests() // Refresh
-            } catch (e: Exception) {
-                // Handle error
             }
         }
     }

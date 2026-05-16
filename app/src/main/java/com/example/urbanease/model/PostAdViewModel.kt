@@ -5,17 +5,17 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jakarta.inject.Inject
+import javax.inject.Inject
 import java.util.UUID
 
 @HiltViewModel
 class PostAdViewModel @Inject constructor() : ViewModel() {
-    var ad = mutableStateOf(PropertyAd())
+    var ad = mutableStateOf(House())
     var isLoading = mutableStateOf(false)
     var errorMessage = mutableStateOf<String?>(null)
 
@@ -122,8 +122,7 @@ class PostAdViewModel @Inject constructor() : ViewModel() {
                     ownerId = userId,
                     houseId = houseId,
                     imageUrls = urls,
-                    isApproved = false,
-                    status = "pending",
+                    status = "available",
                     createdAt = System.currentTimeMillis()
                 )
 

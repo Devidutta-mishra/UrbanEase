@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,10 +27,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.example.urbanease.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDetailScreen(
     navController: NavController,
@@ -39,7 +38,6 @@ fun AdminDetailScreen(
     viewModel: AdminHomeViewModel = hiltViewModel()
 ) {
     val property = viewModel.ads.value.find { it.houseId == propertyId }
-    var showRejectSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = BackgroundLight,
@@ -49,8 +47,8 @@ fun AdminDetailScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundLight),
                 title = {
                     Text(
-                        "Pending Reviews > ID-${propertyId.takeLast(6).uppercase()}",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = TextGrey)
+                        "Property Details",
+                        style = MaterialTheme.typography.titleMedium.copy(color = Color.Black, fontWeight = FontWeight.Bold)
                     )
                 },
                 navigationIcon = {
@@ -59,48 +57,6 @@ fun AdminDetailScreen(
                     }
                 }
             )
-        },
-        bottomBar = {
-            if (property != null && !property.isApproved && property.status != "rejected") {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp,
-                    color = Color.White
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(24.dp)
-                            .navigationBarsPadding(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Button(
-                            onClick = { showRejectSheet = true },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = StatusRejectedText),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(16.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Reject Listing", fontWeight = FontWeight.Bold)
-                        }
-                        Button(
-                            onClick = { 
-                                viewModel.approveAd(propertyId)
-                                navController.popBackStack()
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(16.dp)
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Approve Listing", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
         }
     ) { padding ->
         if (property != null) {
@@ -197,7 +153,7 @@ fun AdminDetailScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeatureChip(icon = Icons.Default.Chair, label = property.furnishing)
-                    FeatureChip(icon = Icons.Default.SquareFoot, label = "1,240 sqft") 
+                    FeatureChip(icon = Icons.Default.SquareFoot, label = "Available") 
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -220,58 +176,9 @@ fun AdminDetailScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Owner Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                painter = painterResource(id = R.drawable.profile),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text("Sarah Jenkins", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Text("Verified Property Owner • Member since 2021", color = TextGrey, fontSize = 12.sp)
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
-                            onClick = { /* Contact */ },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0), contentColor = Color.Black),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Contact Owner")
-                        }
-                    }
-                }
-                
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
-    }
-
-    if (showRejectSheet) {
-        RejectBottomSheet(
-            onDismiss = { showRejectSheet = false },
-            onSubmit = { reason ->
-                viewModel.rejectAd(propertyId)
-                showRejectSheet = false
-                navController.popBackStack()
-            }
-        )
     }
 }
 
@@ -288,112 +195,6 @@ fun FeatureChip(icon: ImageVector, label: String) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
             Spacer(modifier = Modifier.width(8.dp))
             Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-fun RejectBottomSheet(onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
-    val sheetState = rememberModalBottomSheetState()
-    var reason by remember { mutableStateOf("") }
-    val suggestions = listOf("Low Quality Photos", "Missing Details", "Policy Violation")
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.White,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-                .navigationBarsPadding()
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Reject Listing",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Provide a reason for rejection", color = TextGrey)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = reason,
-                onValueChange = { reason = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                placeholder = { Text("Explain why this listing does not meet community standards...", color = TextGrey) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color(0xFFF1F5F9),
-                    unfocusedContainerColor = Color(0xFFF1F5F9)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                suggestions.forEach { suggestion ->
-                    Surface(
-                        modifier = Modifier
-                            .padding(bottom = 8.dp)
-                            .clickable { reason = suggestion },
-                        color = Color(0xFFF1F5F9),
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        Text(
-                            suggestion,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0), contentColor = Color.Black),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Cancel", fontWeight = FontWeight.Bold)
-                }
-                Button(
-                    onClick = { onSubmit(reason) },
-                    modifier = Modifier.weight(1.2f),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Submit", fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

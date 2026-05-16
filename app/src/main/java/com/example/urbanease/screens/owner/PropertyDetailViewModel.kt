@@ -3,7 +3,7 @@ package com.example.urbanease.screens.owner
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.example.urbanease.repository.HouseRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +16,7 @@ class PropertyDetailViewModel @Inject constructor(
     private val repository: HouseRepository
 ) : ViewModel() {
 
-    val property = mutableStateOf<PropertyAd?>(null)
+    val property = mutableStateOf<House?>(null)
     val isLoading = mutableStateOf(false)
     val isUpdating = mutableStateOf(false)
 
@@ -26,7 +26,7 @@ class PropertyDetailViewModel @Inject constructor(
             try {
                 val doc = FirebaseFirestore.getInstance().collection("properties")
                     .document(propertyId).get().await()
-                property.value = doc.toObject(PropertyAd::class.java)
+                property.value = doc.toObject(House::class.java)
             } catch (e: Exception) {
                 // Handle error
             } finally {
@@ -35,16 +35,14 @@ class PropertyDetailViewModel @Inject constructor(
         }
     }
 
-    fun updateProperty(propertyAd: PropertyAd) {
+    fun updateProperty(house: House) {
         isUpdating.value = true
         viewModelScope.launch {
             try {
-                // Since update is just resetting status to pending after edit
-                val updatedAd = propertyAd.copy(status = "pending", isApproved = false, adminNote = "")
                 FirebaseFirestore.getInstance().collection("properties")
-                    .document(propertyAd.houseId)
-                    .set(updatedAd).await()
-                property.value = updatedAd
+                    .document(house.houseId)
+                    .set(house).await()
+                property.value = house
             } catch (e: Exception) {
                 // Handle error
             } finally {

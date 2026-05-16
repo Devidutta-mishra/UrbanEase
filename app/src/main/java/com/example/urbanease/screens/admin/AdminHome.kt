@@ -36,10 +36,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.theme.*
-import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,18 +112,10 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                         iconBg = Color(0xFFE3F2FD)
                     )
                     StatsCard(
-                        icon = Icons.Default.CheckCircle,
-                        title = "Approved Listings",
-                        value = viewModel.ads.value.count { it.isApproved }.toString(),
+                        icon = Icons.Default.Home,
+                        title = "Total Listings",
+                        value = viewModel.ads.value.size.toString(),
                         iconBg = Color(0xFFE8F5E9)
-                    )
-                    StatsCard(
-                        icon = Icons.Default.PendingActions,
-                        title = "Pending Requests",
-                        value = viewModel.ads.value.count { !it.isApproved && it.status == "available" }.toString(),
-                        badge = "Requires Action",
-                        iconBg = Color(0xFFFFF3E0),
-                        badgeColor = StatusPendingText
                     )
                 }
             }
@@ -155,37 +146,13 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                 else -> viewModel.ads.value
             }
 
-            items(filteredAds.take(3)) { ad ->
+            items(filteredAds.take(10)) { ad ->
                 ListingCard(
                     ad = ad,
                     onClick = {
                         navController.navigate("${UrbanScreens.AdminDetailScreen.name}/${ad.houseId}")
                     }
                 )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp)
-                        .clickable { /* View all */ },
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "View All Listings",
-                        color = PrimaryTeal,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = PrimaryTeal
-                    )
-                }
             }
             
             item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -300,7 +267,7 @@ fun FilterChips(
 }
 
 @Composable
-fun ListingCard(ad: PropertyAd, onClick: () -> Unit) {
+fun ListingCard(ad: House, onClick: () -> Unit) {
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.98f else 1f)
 
@@ -336,16 +303,16 @@ fun ListingCard(ad: PropertyAd, onClick: () -> Unit) {
                 )
                 
                 Surface(
-                    color = if (ad.isApproved) StatusApproved else StatusPending,
+                    color = StatusApproved,
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                 ) {
                     Text(
-                        text = if (ad.isApproved) "Approved" else "Pending",
+                        text = "Live",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        color = if (ad.isApproved) StatusApprovedText else StatusPendingText,
+                        color = StatusApprovedText,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -374,11 +341,6 @@ fun ListingCard(ad: PropertyAd, onClick: () -> Unit) {
                         color = PrimaryTeal,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
-                    )
-                    Text(
-                        text = "Submitted 2 hours ago",
-                        color = TextGrey,
-                        fontSize = 11.sp
                     )
                 }
             }

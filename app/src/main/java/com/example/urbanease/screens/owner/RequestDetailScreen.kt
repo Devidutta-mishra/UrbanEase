@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,7 +47,7 @@ fun RequestDetailScreen(
         topBar = {
             TopAppBar(
                 modifier = Modifier.statusBarsPadding(),
-                title = { Text("Request Details") },
+                title = { Text("Applicant Details") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -66,7 +67,7 @@ fun RequestDetailScreen(
     ) { padding ->
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = BrandGreen)
             }
         } else if (detail != null) {
             Column(
@@ -131,7 +132,7 @@ fun RequestDetailScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Email, contentDescription = null, tint = BrandGreen)
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text(detail.user?.userId ?: "User ID: ${detail.user?.userId}", fontSize = 14.sp)
+                            Text(detail.user?.email?.ifBlank { "Not provided" } ?: "Not provided", fontSize = 16.sp)
                         }
                     }
                 }
@@ -147,58 +148,27 @@ fun RequestDetailScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Requested Property", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(detail.property?.title ?: "Unknown Property", fontSize = 18.sp)
-                        Text(detail.property?.location ?: "Unknown Location", color = Color.Gray, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Home, contentDescription = null, tint = BrandGreen)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(detail.property?.title ?: "Unknown Property", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                                Text(detail.property?.location ?: "Unknown Location", color = Color.Gray, fontSize = 14.sp)
+                            }
+                        }
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(48.dp))
                 
-                if (detail.request.status == "pending") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Button(
-                            onClick = { viewModel.updateRequestStatus(requestId, "rejected") },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(16.dp)
-                        ) {
-                            Text("Reject Request", color = Color.Black)
-                        }
-                        Button(
-                            onClick = { viewModel.updateRequestStatus(requestId, "accepted") },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BrandGreen,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(16.dp)
-                        ) {
-                            Text("Accept Request", color = Color.White)
-                        }
-                    }
-                } else {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (detail.request.status == "accepted") Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                        )
-                    ) {
-                        Text(
-                            text = "This request has been ${detail.request.status.uppercase()}",
-                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            fontWeight = FontWeight.Bold,
-                            color = if (detail.request.status == "accepted") Color(0xFF2E7D32) else Color(0xFFC62828)
-                        )
-                    }
-                }
+                Text(
+                    "You can contact this applicant directly using the information provided above.",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
         }
     }

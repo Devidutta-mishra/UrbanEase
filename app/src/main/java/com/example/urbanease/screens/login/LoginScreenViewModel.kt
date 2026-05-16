@@ -108,8 +108,9 @@ class LoginScreenViewModel : ViewModel() {
                         avatarUrl = "",
                         role = role,
                         phoneNumber = phoneNumber,
+                        email = cleanEmail,
                         id = null
-                    ).toMap()
+                    )
 
                     FirebaseFirestore.getInstance().collection("users")
                         .document(userId!!)
@@ -169,7 +170,11 @@ class LoginScreenViewModel : ViewModel() {
                             .addOnSuccessListener { document ->
                                 loading.value = false
                                 if (document != null && document.exists()) {
-                                    val role = document.getString("role") ?: "unknown"
+                                    val user = document.toObject(MUser::class.java)
+                                    FirebaseFirestore.getInstance().collection("users")
+                                        .document(userId)
+                                        .update("email", cleanEmail)
+                                    val role = user?.role ?: "unknown"
                                     Log.d("Login", "Role: $role")
                                     home(role)
                                 } else {

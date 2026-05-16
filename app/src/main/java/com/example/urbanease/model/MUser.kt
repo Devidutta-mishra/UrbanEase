@@ -23,15 +23,9 @@ data class MUser(
     @set:PropertyName("phone_number")
     var phoneNumber: String = "",
 
+    @get:PropertyName("email")
+    @set:PropertyName("email")
+    var email: String = "",
+
     var id: String? = null
-){
-    fun toMap(): MutableMap<String, Any> {
-        return mutableMapOf(
-            "user_id" to this.userId,
-            "display_name" to this.displayName,
-            "avatar_url" to this.avatarUrl,
-            "role" to this.role,
-            "phone_number" to this.phoneNumber
-        )
-    }
-}
+)

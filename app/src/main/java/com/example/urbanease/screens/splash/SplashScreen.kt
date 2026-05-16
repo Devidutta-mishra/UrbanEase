@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.urbanease.model.MUser
 import com.example.urbanease.navigation.UrbanScreens
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -54,7 +55,7 @@ fun SplashScreen(navController: NavController) {
                 stiffness = Spring.StiffnessVeryLow
             )
         )
-        delay(2000L)
+        delay(500L)
 
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser?.email.isNullOrEmpty()) {
@@ -65,8 +66,8 @@ fun SplashScreen(navController: NavController) {
             val db = FirebaseFirestore.getInstance()
             db.collection("users").document(uid).get()
                 .addOnSuccessListener { document ->
-                    val role = document.getString("role")
-                    when (role) {
+                    val user = document.toObject(MUser::class.java)
+                    when (user?.role) {
                         "bachelor" -> navController.navigate(UrbanScreens.BachelorScreen.name)
                         "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
                         else -> navController.navigate(UrbanScreens.LoginScreen.name)

@@ -28,7 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
@@ -50,7 +50,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.*
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,8 +79,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.data.Booking
-import com.example.urbanease.data.PropertyAd
+import com.example.urbanease.model.House
 import com.example.urbanease.model.MUser
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.theme.BrandGreen
@@ -98,25 +103,45 @@ fun BachelorHome(
     ) { paddingValues ->
         when (currentTab) {
             0 -> BachelorHomeScreen(navController, viewModel, paddingValues)
-            1 -> DashboardScreen(paddingValues)
-            2 -> MyBookingsScreen(paddingValues)
-            3 -> BachelorProfileScreen(navController, paddingValues)
+            1 -> ApplicationsScreen(navController, paddingValues)
+            2 -> BachelorProfileScreen(navController, paddingValues, viewModel)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BachelorHomeScreen(
     navController: NavHostController,
     viewModel: BachelorHomeViewModel,
     paddingValues: PaddingValues
 ) {
-    val ads = viewModel.ads.value
+    val ads = viewModel.filteredAds
     val isLoading = viewModel.isLoading.value
-    var selectedFilter by remember { mutableStateOf("Location") }
+    val searchQuery = viewModel.searchQuery.value
+    val currentFilters = viewModel.filters.value
+    
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadApprovedAds()
+        viewModel.loadAllAds()
+    }
+
+    if (showFilterSheet) {
+        FilterBottomSheet(
+            currentFilters = currentFilters,
+            onDismiss = { showFilterSheet = false },
+            onApply = { 
+                viewModel.updateFilters(it)
+                showFilterSheet = false
+            },
+            onClear = {
+                viewModel.clearFilters()
+                showFilterSheet = false
+            }
+        )
     }
 
     Column(
@@ -125,48 +150,13 @@ fun BachelorHomeScreen(
             .statusBarsPadding()
             .padding(paddingValues)
     ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = Color(0xFF2C3E50),
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "UrbanEase",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1D52)
-                )
-            }
-        }
-
-        // Filter Chips
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val filters = listOf("Location", "Rent Range", "Rooms")
-            items(filters) { filter ->
-                FilterChip(
-                    text = filter,
-                    isSelected = selectedFilter == filter,
-                    onClick = { selectedFilter = filter }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
+        // Search Header with Filter Button
+        SearchHeader(
+            query = searchQuery,
+            onQueryChange = { viewModel.onSearchQueryChanged(it) },
+            onFilterClick = { showFilterSheet = true },
+            hasActiveFilters = currentFilters != PropertyFilters()
+        )
 
         // Main Content
         Box(modifier = Modifier.weight(1f)) {
@@ -194,16 +184,17 @@ fun BachelorHomeScreen(
                         )
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(
-                            "No properties found",
+                            if (searchQuery.isNotEmpty()) "Coming soon !" else "No properties found",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2C3E50)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Try adjusting your filters or search criteria.",
+                            if (searchQuery.isNotEmpty()) "We are currently not serving in this location." else "Try adjusting your filters or search criteria.",
                             color = Color.Gray,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -217,6 +208,300 @@ fun BachelorHomeScreen(
                         BachelorPropertyCard(ad) {
                             navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.houseId}")
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchHeader(
+    query: String, 
+    onQueryChange: (String) -> Unit, 
+    onFilterClick: () -> Unit,
+    hasActiveFilters: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "UrbanEase",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1D52)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFFF5F6F7),
+                border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 15.sp,
+                            color = Color.Black
+                        ),
+                        decorationBox = { innerTextField ->
+                            if (query.isEmpty()) {
+                                Text(
+                                    text = "Search by location...",
+                                    color = Color.Gray,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                    if (query.isNotEmpty()) {
+                        IconButton(
+                            onClick = { onQueryChange("") },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Box {
+                Surface(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clickable { onFilterClick() },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (hasActiveFilters) Color(0xFF1A1D52) else Color(0xFFF5F6F7),
+                    border = BorderStroke(1.dp, if (hasActiveFilters) Color(0xFF1A1D52) else Color(0xFFEEEEEE))
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "Filter",
+                            tint = if (hasActiveFilters) Color.White else Color.Black
+                        )
+                    }
+                }
+                if (hasActiveFilters) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-4).dp, y = 4.dp)
+                            .size(10.dp)
+                            .background(Color.Red, CircleShape)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterBottomSheet(
+    currentFilters: PropertyFilters,
+    onDismiss: () -> Unit,
+    onApply: (PropertyFilters) -> Unit,
+    onClear: () -> Unit
+) {
+    var tempBhk by remember { mutableStateOf(currentFilters.bhk) }
+    var tempBathrooms by remember { mutableStateOf(currentFilters.bathrooms) }
+    val tempMaxRentByState = remember { mutableStateOf(currentFilters.maxRent ?: 50000f) }
+    var tempMaxRent by tempMaxRentByState
+    var tempFurnishing by remember { mutableStateOf(currentFilters.furnishing) }
+    
+    val scrollState = rememberScrollState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding()
+        ) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Filters",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                TextButton(onClick = onClear) {
+                    Text("Clear All", color = Color.Gray)
+                }
+            }
+
+            // Scrollable Content Area
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(scrollState)
+            ) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // BHK Filter
+                Text("BHK", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(1, 2, 3, 4).forEach { bhk ->
+                        FilterChip(
+                            text = "$bhk BHK",
+                            isSelected = tempBhk == bhk,
+                            onClick = { tempBhk = if (tempBhk == bhk) null else bhk }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Bathrooms Filter
+                Text("Bathrooms", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(1, 2, 3).forEach { bath ->
+                        FilterChip(
+                            text = "$bath+",
+                            isSelected = tempBathrooms == bath,
+                            onClick = { tempBathrooms = if (tempBathrooms == bath) null else bath }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Rent Filter
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Max Rent", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("₹${tempMaxRent.toInt()}", color = BrandGreen, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = tempMaxRent,
+                    onValueChange = { tempMaxRent = it },
+                    valueRange = 5000f..100000f,
+                    steps = 19,
+                    colors = SliderDefaults.colors(
+                        thumbColor = BrandGreen,
+                        activeTrackColor = BrandGreen,
+                        inactiveTrackColor = Color(0xFFEEEEEE)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Furnishing
+                Text("Furnishing", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("Furnished", "Semi-Furnished", "Unfurnished").forEach { status ->
+                        FilterChip(
+                            text = status,
+                            isSelected = tempFurnishing == status,
+                            onClick = { tempFurnishing = if (tempFurnishing == status) null else status }
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+
+            // Fixed Footer with Apply Button
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                color = Color.White
+            ) {
+                Button(
+                    onClick = { 
+                        onApply(PropertyFilters(tempBhk, tempBathrooms, tempMaxRent, tempFurnishing)) 
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1A1D52),
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Apply Filters & Search", 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 16.sp
+                        )
                     }
                 }
             }
@@ -247,7 +532,7 @@ fun FilterChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun BachelorPropertyCard(ad: PropertyAd, onClick: () -> Unit) {
+fun BachelorPropertyCard(ad: House, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -315,7 +600,9 @@ fun BachelorPropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = ad.title,
+                        text = ad.title.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                        },
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF2C3E50)
@@ -335,14 +622,14 @@ fun BachelorPropertyCard(ad: PropertyAd, onClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = Color.Gray,
+                        tint = Color.Black,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = ad.location,
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        color = Color.Black
                     )
                 }
 
@@ -386,25 +673,13 @@ fun InfoBadge(icon: ImageVector, text: String) {
 }
 
 @Composable
-fun MyBookingsScreen(
+fun ApplicationsScreen(
+    navController: NavHostController,
     paddingValues: PaddingValues,
     viewModel: BachelorBookingsViewModel = hiltViewModel()
 ) {
-    val approvedBookings = viewModel.bookings.value.filter { it.request.status.lowercase() == "approved" || it.request.status.lowercase() == "accepted" }
+    val allBookings = viewModel.bookings.value
     val isLoading = viewModel.isLoading.value
-    var selectedBooking by remember { mutableStateOf<BachelorBookingUIModel?>(null) }
-    var ownerDetails by remember { mutableStateOf<MUser?>(null) }
-
-    LaunchedEffect(selectedBooking) {
-        if (selectedBooking != null && ownerDetails == null) {
-            FirebaseFirestore.getInstance().collection("users")
-                .document(selectedBooking!!.request.ownerId)
-                .get()
-                .addOnSuccessListener { doc ->
-                    ownerDetails = doc.toObject(MUser::class.java)
-                }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -414,7 +689,7 @@ fun MyBookingsScreen(
             .padding(paddingValues)
     ) {
         Text(
-            text = "My Bookings",
+            text = "My Applications",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1A1D52),
@@ -425,211 +700,33 @@ fun MyBookingsScreen(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandGreen)
             }
-        } else if (approvedBookings.isEmpty()) {
+        } else if (allBookings.isEmpty()) {
             EmptyState(
                 icon = Icons.AutoMirrored.Filled.List,
-                title = "No Approved Bookings",
-                description = "Your approved bookings will appear here. Check 'All Bookings' for pending requests."
+                title = "No Applications Yet",
+                description = "Your property applications will appear here. Owner contact details are provided instantly."
             )
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(approvedBookings) { booking ->
-                    BookingItem(
-                        booking = booking,
-                        isApprovedBooking = true,
-                        onApprovedBookingClick = {
-                            selectedBooking = booking
-                            ownerDetails = null
-                        }
-                    )
+                items(allBookings) { booking ->
+                    BookingItem(booking) {
+                        navController.navigate("${UrbanScreens.DetailScreen.name}/${booking.request.propertyId}")
+                    }
                 }
             }
         }
     }
-
-    // Owner Details Modal
-    if (selectedBooking != null) {
-        OwnerDetailsDialog(
-            booking = selectedBooking!!,
-            ownerDetails = ownerDetails,
-            onDismiss = { selectedBooking = null }
-        )
-    }
 }
 
 @Composable
-fun OwnerDetailsDialog(booking: BachelorBookingUIModel, ownerDetails: MUser?, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Owner Details",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A1D52)
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-            ) {
-                if (ownerDetails == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = BrandGreen)
-                    }
-                } else {
-                    // Owner Profile Section
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFF0F0F0)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (ownerDetails.avatarUrl.isNotEmpty()) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(ownerDetails.avatarUrl),
-                                    contentDescription = "Owner Avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(50.dp),
-                                    tint = BrandGreen
-                                )
-                            }
-                        }
-                    }
-
-                    // Owner Details
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Name
-                    DetailRow(
-                        icon = Icons.Default.Person,
-                        label = "Name",
-                        value = ownerDetails.displayName
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Phone
-                    DetailRow(
-                        icon = Icons.Default.Call,
-                        label = "Phone",
-                        value = ownerDetails.phoneNumber
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Email
-                    DetailRow(
-                        icon = Icons.Default.Email,
-                        label = "Email",
-                        value = ownerDetails.userId
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Property Details
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        color = BrandGreen.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, BrandGreen.copy(alpha = 0.3f))
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "Property Details",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BrandGreen
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = booking.property?.title ?: "N/A",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF2C3E50)
-                            )
-                            Row(
-                                modifier = Modifier.padding(top = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = booking.property?.location ?: "N/A", fontSize = 13.sp, color = Color.Gray)
-                            }
-                            Row(
-                                modifier = Modifier.padding(top = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Rent: ₹${booking.property?.rent ?: 0}/month",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = BrandGreen
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        shape = RoundedCornerShape(16.dp),
-        containerColor = Color.White
-    )
-}
-
-@Composable
-fun BookingItem(booking: BachelorBookingUIModel, isApprovedBooking: Boolean = false, onApprovedBookingClick: (() -> Unit)? = null) {
-    val status = booking.request.status.lowercase()
-    val statusColor = when (status) {
-        "approved", "accepted" -> BrandGreen
-        "rejected" -> Color.Red
-        else -> Color(0xFFF39C12)
-    }
-
-    val modifier = if (isApprovedBooking) {
-        Modifier
-            .fillMaxWidth()
-            .clickable { onApprovedBookingClick?.invoke() }
-    } else {
-        Modifier.fillMaxWidth()
-    }
-
+fun BookingItem(booking: BachelorBookingUIModel, onCardClick: () -> Unit) {
     Surface(
-        modifier = modifier,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() },
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
         shadowElevation = 2.dp,
@@ -657,13 +754,13 @@ fun BookingItem(booking: BachelorBookingUIModel, isApprovedBooking: Boolean = fa
                 }
 
                 Surface(
-                    color = statusColor.copy(alpha = 0.1f),
+                    color = BrandGreen.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = status.uppercase(),
+                        text = "APPLIED",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        color = statusColor,
+                        color = BrandGreen,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -672,37 +769,52 @@ fun BookingItem(booking: BachelorBookingUIModel, isApprovedBooking: Boolean = fa
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
+            // Owner Details (Shown directly)
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                color = Color(0xFFF8F9FA),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text(
-                    text = "₹${booking.property?.rent ?: 0}/mo",
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreen,
-                    fontSize = 16.sp
-                )
-
-                if (isApprovedBooking) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .background(BrandGreen.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.Info, null, tint = BrandGreen, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Tap for details",
-                            fontSize = 12.sp,
-                            color = BrandGreen,
-                            fontWeight = FontWeight.Medium
-                        )
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Owner Contact Details",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGreen
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (booking.owner != null) {
+                        ContactInfoRow(Icons.Default.Person, booking.owner.displayName)
+                        ContactInfoRow(Icons.Default.Call, booking.owner.phoneNumber)
+                        ContactInfoRow(Icons.Default.Email, booking.owner.email.ifBlank { "Not provided" })
+                    } else {
+                        Text("Loading owner details...", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "₹${booking.property?.rent ?: 0}/mo",
+                fontWeight = FontWeight.Bold,
+                color = BrandGreen,
+                fontSize = 16.sp
+            )
         }
+    }
+}
+
+@Composable
+fun ContactInfoRow(icon: ImageVector, text: String) {
+    Row(
+        modifier = Modifier.padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = BrandGreen, modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = text, fontSize = 13.sp, color = Color.DarkGray)
     }
 }
 
@@ -747,52 +859,6 @@ fun DetailRow(icon: ImageVector, label: String, value: String) {
 }
 
 @Composable
-fun DashboardScreen(
-    paddingValues: PaddingValues,
-    viewModel: BachelorBookingsViewModel = hiltViewModel()
-) {
-    val bookings = viewModel.bookings.value
-    val isLoading = viewModel.isLoading.value
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
-            .statusBarsPadding()
-            .padding(paddingValues)
-    ) {
-        Text(
-            text = "Dashboard",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1A1D52),
-            modifier = Modifier.padding(24.dp)
-        )
-
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = BrandGreen)
-            }
-        } else if (bookings.isEmpty()) {
-            EmptyState(
-                icon = Icons.Default.DateRange,
-                title = "No Activity Yet",
-                description = "Your booking requests and status updates will appear here."
-            )
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(bookings) { booking ->
-                    BookingItem(booking)
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun EmptyState(icon: ImageVector, title: String, description: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
@@ -816,21 +882,10 @@ fun EmptyState(icon: ImageVector, title: String, description: String) {
 }
 
 @Composable
-fun BachelorProfileScreen(navController: NavHostController, paddingValues: PaddingValues) {
-    var userProfile by remember { mutableStateOf<MUser?>(null) }
+fun BachelorProfileScreen(navController: NavHostController, paddingValues: PaddingValues, viewModel: BachelorHomeViewModel = hiltViewModel()) {
+    val userProfile = viewModel.userProfile.value
     var showLogoutDialog by remember { mutableStateOf(false) }
     val currentUser = FirebaseAuth.getInstance().currentUser
-
-    LaunchedEffect(Unit) {
-        if (currentUser != null) {
-            FirebaseFirestore.getInstance().collection("users")
-                .document(currentUser.uid)
-                .get()
-                .addOnSuccessListener { doc ->
-                    userProfile = doc.toObject(MUser::class.java)
-                }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -1057,9 +1112,8 @@ fun BottomNavigationBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
 
         val items = listOf(
             Triple("Home", Icons.Default.Home, 0),
-            Triple("Dashboard", Icons.AutoMirrored.Filled.List, 1),
-            Triple("My Bookings", Icons.Default.DateRange, 2),
-            Triple("Profile", Icons.Default.Person, 3)
+            Triple("Applications", Icons.AutoMirrored.Filled.List, 1),
+            Triple("Profile", Icons.Default.Person, 2)
         )
 
         items.forEach { (label, icon, index) ->
