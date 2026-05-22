@@ -1,44 +1,30 @@
 package com.example.urbanease.screens.login
 
 import android.util.Log
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.urbanease.model.MUser
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.example.urbanease.repository.AuthRepository
+import com.example.urbanease.repository.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class LoginScreenViewModel : ViewModel() {
-    val loadingState = MutableStateFlow(LoadingState.IDLE)
-
-    internal val auth: FirebaseAuth = Firebase.auth
-
-    var loading: MutableState<Boolean> = mutableStateOf(false)
-        private set
-
-    var error: MutableState<String?> = mutableStateOf(null)
-        private set
-
-    var emailError = mutableStateOf<String?>(null)
-        private set
-
-    var passwordError = mutableStateOf<String?>(null)
-        private set
-
-    var email = mutableStateOf("")
-        private set
-
-    var password = mutableStateOf("")
+@HiltViewModel
+class LoginScreenViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository
+) : ViewModel() {
+    
+    var uiState by mutableStateOf(LoginUiState())
         private set
 
 
     fun validateEmail(email: String) {
         val cleanEmail = email.trim()
 
-        emailError.value = when {
+        val emailError = when {
             cleanEmail.isBlank() -> "Email cannot be empty"
             cleanEmail.any { it.isWhitespace() } -> "Email should not contain spaces"
             !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() -> {
@@ -46,24 +32,26 @@ class LoginScreenViewModel : ViewModel() {
             }
             else -> null
         }
+        uiState = uiState.copy(emailError = emailError)
     }
 
     fun validatePassword(password: String) {
-        passwordError.value = when {
+        val passwordError = when {
             password.isBlank() -> "Password cannot be empty"
             password.length < 6 -> "Password must be at least 6 characters"
             else -> null
         }
+        uiState = uiState.copy(passwordError = passwordError)
     }
 
 
     fun onEmailChange(newEmail: String) {
-        email.value = newEmail
+        uiState = uiState.copy(email = newEmail)
         validateEmail(newEmail)
     }
 
     fun onPasswordChange(newPassword: String) {
-        password.value = newPassword
+        uiState = uiState.copy(password = newPassword)
         validatePassword(newPassword)
     }
     fun createUserWithEmailAndPassword(
@@ -79,31 +67,28 @@ class LoginScreenViewModel : ViewModel() {
         val cleanPassword = password.trim()
 
         if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
-            error.value = "Email and Password cannot be empty"
+            uiState = uiState.copy(error = "Email and Password cannot be empty")
             return
         }
         if (cleanEmail.any { it.isWhitespace() }) {
-            error.value = "Email should not contain spaces"
+            uiState = uiState.copy(error = "Email should not contain spaces")
             return
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
-            error.value = "Invalid email format"
+            uiState = uiState.copy(error = "Invalid email format")
             return
         }
 
-        if (loading.value) return
+        if (uiState.isLoading) return
 
-        loading.value = true
-        error.value = null
+        startLoading()
 
-        auth.createUserWithEmailAndPassword(cleanEmail, cleanPassword)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid
-
+        authRepository.signup(cleanEmail, cleanPassword) { result ->
+            result
+                .onSuccess { userId ->
                     val user = MUser(
-                        userId = userId.toString(),
+                        userId = userId,
                         displayName = displayName,
                         avatarUrl = "",
                         role = role,
@@ -112,25 +97,24 @@ class LoginScreenViewModel : ViewModel() {
                         id = null
                     )
 
-                    FirebaseFirestore.getInstance().collection("users")
-                        .document(userId!!)
-                        .set(user)
-                        .addOnSuccessListener {
-                            loading.value = false
+                    userRepository.saveUser(user) { saved ->
+                        if (saved) {
                             Log.d("Signup", "User created with role: $role")
+                            finishLoading()
                             home()
+                        } else {
+                            finishLoading()
+                            uiState = uiState.copy(error = "Failed to save user data")
+                            Log.d("Signup", "Error saving user")
                         }
-                        .addOnFailureListener { e ->
-                            loading.value = false
-                            error.value = "Failed to save user data: ${e.message}"
-                            Log.d("Signup", "Error saving user: ${e.message}")
-                        }
-                } else {
-                    loading.value = false
-                    error.value = task.exception?.message ?: "Signup failed"
-                    Log.d("createUserWithEmailAndPassword", "Error: ${task.exception?.message}")
+                    }
                 }
-            }
+                .onFailure { exception ->
+                    finishLoading()
+                    uiState = uiState.copy(error = exception.message ?: "Signup failed")
+                    Log.d("createUserWithEmailAndPassword", "Error: ${exception.message}")
+                }
+        }
     }
 
 
@@ -140,59 +124,53 @@ class LoginScreenViewModel : ViewModel() {
         val cleanPassword = password.trim()
 
         if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
-            error.value = "Email and Password cannot be empty"
+            uiState = uiState.copy(error = "Email and Password cannot be empty")
             return
         }
 
         if (cleanEmail.any { it.isWhitespace() }) {
-            error.value = "Email should not contain spaces"
+            uiState = uiState.copy(error = "Email should not contain spaces")
             return
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
-            error.value = "Invalid email format"
+            uiState = uiState.copy(error = "Invalid email format")
             return
         }
 
-        if (loading.value) return
+        if (uiState.isLoading) return
 
-        loading.value = true
-        error.value = null
+        startLoading()
 
-        auth.signInWithEmailAndPassword(cleanEmail, cleanPassword)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid
-                    if (userId != null) {
-                        FirebaseFirestore.getInstance().collection("users")
-                            .document(userId)
-                            .get()
-                            .addOnSuccessListener { document ->
-                                loading.value = false
-                                if (document != null && document.exists()) {
-                                    val user = document.toObject(MUser::class.java)
-                                    FirebaseFirestore.getInstance().collection("users")
-                                        .document(userId)
-                                        .update("email", cleanEmail)
-                                    val role = user?.role ?: "unknown"
-                                    Log.d("Login", "Role: $role")
-                                    home(role)
-                                } else {
-                                    error.value = "User role not found"
-                                    Log.d("Login", "No such user document")
-                                }
-                            }
-                            .addOnFailureListener { exception ->
-                                loading.value = false
-                                error.value = "Error getting user role: ${exception.message}"
-                                Log.d("Login", "Error getting user role: ${exception.message}")
-                            }
+        authRepository.login(cleanEmail, cleanPassword) { result ->
+            result
+                .onSuccess { userId ->
+                    userRepository.getUser(userId) { user ->
+                        finishLoading()
+                        if (user != null) {
+                            userRepository.updateUserEmail(userId, cleanEmail)
+                            val role = user.role.ifBlank { "unknown" }
+                            Log.d("Login", "Role: $role")
+                            home(role)
+                        } else {
+                            uiState = uiState.copy(error = "User role not found")
+                            Log.d("Login", "No such user document")
+                        }
                     }
-                } else {
-                    loading.value = false
-                    error.value = task.exception?.message ?: "Login failed"
-                    Log.d("Login", "signIn failed: ${task.exception?.message}")
                 }
-            }
+                .onFailure { exception ->
+                    finishLoading()
+                    uiState = uiState.copy(error = exception.message ?: "Login failed")
+                    Log.d("Login", "signIn failed: ${exception.message}")
+                }
+        }
+    }
+
+    private fun startLoading() {
+        uiState = uiState.copy(isLoading = true, error = null)
+    }
+
+    private fun finishLoading() {
+        uiState = uiState.copy(isLoading = false)
     }
 }

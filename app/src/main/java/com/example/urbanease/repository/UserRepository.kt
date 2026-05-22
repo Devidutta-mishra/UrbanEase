@@ -37,4 +37,12 @@ class UserRepository @Inject constructor() {
             .addOnSuccessListener { onResult(true) }
             .addOnFailureListener { onResult(false) }
     }
+
+    fun updateUserEmail(userId: String, email: String) {
+        usersRef.document(userId).update("email", email)
+    }
+
+    fun updateDisplayName(userId: String, displayName: String) {
+        usersRef.document(userId).update("displayName", displayName)
+    }
 }

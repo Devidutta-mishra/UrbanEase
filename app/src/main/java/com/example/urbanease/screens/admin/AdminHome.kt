@@ -36,13 +36,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.model.House
+import com.example.urbanease.model.Property
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = hiltViewModel()) {
+    val uiState = viewModel.uiState
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Owners", "Bachelors")
 
@@ -100,21 +101,21 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                     StatsCard(
                         icon = Icons.Default.Groups,
                         title = "Total Owners",
-                        value = viewModel.owners.value.size.toString(),
+                        value = uiState.owners.size.toString(),
                         badge = "+12%",
                         iconBg = Color(0xFFE0F2F1)
                     )
                     StatsCard(
                         icon = Icons.Default.Person,
                         title = "Total Bachelors",
-                        value = viewModel.bachelors.value.size.toString(),
+                        value = uiState.bachelors.size.toString(),
                         badge = "+5%",
                         iconBg = Color(0xFFE3F2FD)
                     )
                     StatsCard(
                         icon = Icons.Default.Home,
                         title = "Total Listings",
-                        value = viewModel.ads.value.size.toString(),
+                        value = uiState.properties.size.toString(),
                         iconBg = Color(0xFFE8F5E9)
                     )
                 }
@@ -140,17 +141,17 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
             }
 
             // Property List
-            val filteredAds = when (selectedFilter) {
-                "Owners" -> viewModel.ads.value 
-                "Bachelors" -> viewModel.ads.value 
-                else -> viewModel.ads.value
+            val filteredProperties = when (selectedFilter) {
+                "Owners" -> uiState.properties 
+                "Bachelors" -> uiState.properties 
+                else -> uiState.properties
             }
 
-            items(filteredAds.take(10)) { ad ->
+            items(filteredProperties.take(10)) { ad ->
                 ListingCard(
                     ad = ad,
                     onClick = {
-                        navController.navigate("${UrbanScreens.AdminDetailScreen.name}/${ad.houseId}")
+                        navController.navigate("${UrbanScreens.AdminDetailScreen.name}/${ad.propertyId}")
                     }
                 )
             }
@@ -267,7 +268,7 @@ fun FilterChips(
 }
 
 @Composable
-fun ListingCard(ad: House, onClick: () -> Unit) {
+fun ListingCard(ad: Property, onClick: () -> Unit) {
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.98f else 1f)
 
@@ -303,16 +304,24 @@ fun ListingCard(ad: House, onClick: () -> Unit) {
                 )
                 
                 Surface(
-                    color = StatusApproved,
+                    color = when (ad.approvalStatus) {
+                        Property.APPROVAL_APPROVED -> StatusApproved
+                        Property.APPROVAL_REJECTED -> Color(0xFFFFE0E0)
+                        else -> Color(0xFFFFF4CC)
+                    },
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                 ) {
                     Text(
-                        text = "Live",
+                        text = ad.approvalStatus.replace("_", " ").uppercase(),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        color = StatusApprovedText,
+                        color = when (ad.approvalStatus) {
+                            Property.APPROVAL_APPROVED -> StatusApprovedText
+                            Property.APPROVAL_REJECTED -> Color(0xFF991B1B)
+                            else -> Color(0xFF8A4B08)
+                        },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -330,6 +339,13 @@ fun ListingCard(ad: House, onClick: () -> Unit) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(ad.location, color = TextGrey, fontSize = 12.sp)
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Availability: ${ad.propertyStatus.replace("_", " ").uppercase()}",
+                    color = TextGrey,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -3,17 +3,15 @@ package com.example.urbanease.screens.owner
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urbanease.model.BookingRequest
-import com.example.urbanease.model.MUser
-import com.example.urbanease.model.House
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.urbanease.repository.PropertyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
-class RequestDetailViewModel @Inject constructor() : ViewModel() {
+class RequestDetailViewModel @Inject constructor(
+    private val propertyRepository: PropertyRepository
+) : ViewModel() {
 
     val requestDetail = mutableStateOf<RequestWithDetails?>(null)
     val isLoading = mutableStateOf(false)
@@ -22,18 +20,10 @@ class RequestDetailViewModel @Inject constructor() : ViewModel() {
         isLoading.value = true
         viewModelScope.launch {
             try {
-                val requestDoc = FirebaseFirestore.getInstance().collection("requests")
-                    .document(requestId).get().await()
-                val request = requestDoc.toObject(BookingRequest::class.java) ?: return@launch
-                
-                val userDoc = FirebaseFirestore.getInstance().collection("users")
-                    .document(request.bachelorId).get().await()
-                val user = userDoc.toObject(MUser::class.java)
-                
-                val propertyDoc = FirebaseFirestore.getInstance().collection("properties")
-                    .document(request.propertyId).get().await()
-                val property = propertyDoc.toObject(House::class.java)
-                
+                val request = propertyRepository.getRequest(requestId) ?: return@launch
+                val user = propertyRepository.getUser(request.bachelorId)
+                val property = propertyRepository.getProperty(request.propertyId)
+
                 requestDetail.value = RequestWithDetails(request, user, property)
             } catch (e: Exception) {
                 // Handle error

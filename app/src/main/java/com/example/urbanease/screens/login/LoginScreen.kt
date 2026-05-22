@@ -60,7 +60,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.urbanease.ui.theme.BrandGreen
 import androidx.navigation.NavController
 import com.example.urbanease.R
@@ -69,17 +69,15 @@ import com.example.urbanease.navigation.UrbanScreens
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: LoginScreenViewModel = viewModel()
+    viewModel: LoginScreenViewModel = hiltViewModel()
 ) {
     val showLoginForm = rememberSaveable { mutableStateOf(true) }
-    val loading = viewModel.loading.value
-    val error = viewModel.error.value
+    val uiState = viewModel.uiState
 
     if (showLoginForm.value) {
         LoginContent(
             viewModel = viewModel,
-            loading = loading,
-            error = error,
+            uiState = uiState,
             onSignIn = { email, password ->
                 viewModel.signInWithEmailAndPassword(email, password) { role ->
                     when (role) {
@@ -94,8 +92,7 @@ fun LoginScreen(
     } else {
         CreateAccountContent(
             viewModel = viewModel,
-            loading = loading,
-            error = error,
+            uiState = uiState,
             onBack = { showLoginForm.value = true },
             onSignUp = { email, password, role, name, phone ->
                 viewModel.createUserWithEmailAndPassword(email, password, role, name, phone) {
@@ -114,15 +111,14 @@ fun LoginScreen(
 @Composable
 fun LoginContent(
     viewModel: LoginScreenViewModel,
-    loading: Boolean,
-    error: String?,
+    uiState: LoginUiState,
     onSignIn: (String, String) -> Unit,
     onNavigateToSignup: () -> Unit
 ) {
 
     val passwordVisible = rememberSaveable { mutableStateOf(false) }
-    val email = viewModel.email.value
-    val password = viewModel.password.value
+    val email = uiState.email
+    val password = uiState.password
 
     Column(
         modifier = Modifier
@@ -179,7 +175,7 @@ fun LoginContent(
             onValueChange = { viewModel.onEmailChange(it) },
             placeholder = "name@example.com",
             icon = Icons.Default.Email,
-            error = viewModel.emailError.value
+            error = uiState.emailError
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -194,12 +190,12 @@ fun LoginContent(
             isPassword = true,
             passwordVisible = passwordVisible.value,
             onPasswordToggle = { passwordVisible.value = !passwordVisible.value },
-            error = viewModel.passwordError.value
+            error = uiState.passwordError
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (error != null) {
+        if (uiState.error != null) {
             Text(
                 text = "Incorrect email or password. Please try again.",
                 color = Color.Red,
@@ -218,9 +214,9 @@ fun LoginContent(
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp),
-            enabled = !loading && viewModel.emailError.value == null && viewModel.passwordError.value == null && email.isNotEmpty() && password.isNotEmpty()
+            enabled = !uiState.isLoading && uiState.emailError == null && uiState.passwordError == null && email.isNotEmpty() && password.isNotEmpty()
         ) {
-            if (loading) {
+            if (uiState.isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -261,8 +257,7 @@ fun LoginContent(
 @Composable
 fun CreateAccountContent(
     viewModel: LoginScreenViewModel,
-    loading: Boolean,
-    error: String?,
+    uiState: LoginUiState,
     onBack: () -> Unit,
     onSignUp: (String, String, String, String, String) -> Unit,
     onNavigateToLogin: () -> Unit
@@ -271,8 +266,8 @@ fun CreateAccountContent(
     val phoneState = rememberSaveable { mutableStateOf("") }
     val selectedRole = rememberSaveable { mutableStateOf("bachelor") }
     val termsAccepted = rememberSaveable { mutableStateOf(false) }
-    val email = viewModel.email.value
-    val password = viewModel.password.value
+    val email = uiState.email
+    val password = uiState.password
 
     Column(
         modifier = Modifier
@@ -371,7 +366,7 @@ fun CreateAccountContent(
             onValueChange = { viewModel.onEmailChange(it) },
             placeholder = "name@example.com",
             icon = Icons.Default.Email,
-            error = viewModel.emailError.value
+            error = uiState.emailError
         )
         Spacer(modifier = Modifier.height(10.dp))
         CustomInputField(
@@ -389,7 +384,7 @@ fun CreateAccountContent(
             placeholder = "********",
             icon = Icons.Default.Lock,
             isPassword = true,
-            error = viewModel.passwordError.value
+            error = uiState.passwordError
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -410,8 +405,8 @@ fun CreateAccountContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (error != null) {
-            Text(text = error, color = Color.Red, fontSize = 14.sp)
+        if (uiState.error != null) {
+            Text(text = uiState.error, color = Color.Red, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -425,14 +420,14 @@ fun CreateAccountContent(
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp),
-            enabled = !loading &&
+            enabled = !uiState.isLoading &&
                     termsAccepted.value &&
-                    viewModel.emailError.value == null &&
-                    viewModel.passwordError.value == null &&
+                    uiState.emailError == null &&
+                    uiState.passwordError == null &&
                     email.isNotBlank() &&
                     password.isNotBlank()
         ) {
-            if (loading) {
+            if (uiState.isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
                 Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.Bold)

@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.urbanease.components.AnimatedButton
-import com.example.urbanease.model.PostAdViewModel
+import com.example.urbanease.screens.owner.add.PostAdViewModel
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings

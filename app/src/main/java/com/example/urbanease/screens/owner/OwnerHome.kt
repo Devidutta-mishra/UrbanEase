@@ -26,7 +26,7 @@ import com.example.urbanease.ui.theme.BrandGreen
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.model.House
+import com.example.urbanease.model.Property
 import com.example.urbanease.navigation.UrbanScreens
 
 @Composable
@@ -34,8 +34,9 @@ fun OwnerHome(
     navController: NavController,
     viewModel: OwnerHomeViewModel = hiltViewModel()
 ) {
-    val ads = viewModel.ads.value
-    val isLoading = viewModel.isLoading.value
+    val uiState = viewModel.uiState
+    val properties = uiState.properties
+    val isLoading = uiState.isLoading
 
     Scaffold(
         topBar = {
@@ -76,7 +77,7 @@ fun OwnerHome(
                 }
 
                 item {
-                    StatCard("TOTAL PROPERTIES", viewModel.totalProperties.value.toString(), Modifier.fillMaxWidth())
+                    StatCard("TOTAL PROPERTIES", uiState.totalProperties.toString(), Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
@@ -86,7 +87,7 @@ fun OwnerHome(
                             CircularProgressIndicator(color = BrandGreen)
                         }
                     }
-                } else if (ads.isEmpty()) {
+                } else if (properties.isEmpty()) {
                     item {
                         Box(
                             Modifier
@@ -134,9 +135,9 @@ fun OwnerHome(
                         }
                     }
                 } else {
-                    items(ads) { ad ->
+                    items(properties) { ad ->
                         PropertyCard(ad = ad) {
-                            navController.navigate("${UrbanScreens.PropertyDetailScreen.name}/${ad.houseId}")
+                            navController.navigate("${UrbanScreens.PropertyDetailScreen.name}/${ad.propertyId}")
                         }
                     }
                 }
@@ -195,7 +196,7 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, bgColo
 }
 
 @Composable
-fun PropertyCard(ad: House, onClick: () -> Unit) {
+fun PropertyCard(ad: Property, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()

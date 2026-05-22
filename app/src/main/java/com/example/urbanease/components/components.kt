@@ -64,7 +64,6 @@ import androidx.navigation.NavController
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings
-import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun PasswordInput(
@@ -221,7 +220,8 @@ fun InputField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OwnerAppbar(
-    navController: NavController
+    navController: NavController,
+    onLogout: () -> Unit = {}
 ) {
     Column(modifier = Modifier.background(Color.White)) {
         Row(
@@ -257,7 +257,7 @@ fun OwnerAppbar(
                     )
                 }
                 IconButton(onClick = {
-                    FirebaseAuth.getInstance().signOut()
+                    onLogout()
                     navController.navigate(UrbanScreens.LoginScreen.name) {
                         popUpTo(0)
                     }

@@ -9,7 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
-import com.example.urbanease.model.PostAdViewModel
+import com.example.urbanease.screens.owner.add.PostAdViewModel
 import com.example.urbanease.screens.admin.AdminDetailScreen
 import com.example.urbanease.screens.admin.AdminHome
 import com.example.urbanease.screens.bachelor.BachelorHome
@@ -116,13 +116,13 @@ fun UrbanNavigation(navController: NavHostController) {
         }
 
         composable(
-            route = "${UrbanScreens.DetailScreen.name}/{houseId}",
-            arguments = listOf(navArgument("houseId") { type = NavType.StringType }),
+            route = "${UrbanScreens.DetailScreen.name}/{propertyId}",
+            arguments = listOf(navArgument("propertyId") { type = NavType.StringType }),
             enterTransition = { ScreenTransitions.slideInLeftTransition() },
             exitTransition = { ScreenTransitions.slideOutLeftTransition() }
         ) { backStackEntry ->
-            val houseId = backStackEntry.arguments?.getString("houseId") ?: ""
-            DetailScreen(navController = navController, houseId = houseId)
+            val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
+            DetailScreen(navController = navController, propertyId = propertyId)
         }
 
         navigation(

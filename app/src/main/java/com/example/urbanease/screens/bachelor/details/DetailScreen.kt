@@ -66,7 +66,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.model.House
+import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
 import com.example.urbanease.ui.theme.BrandGreen
 import java.text.NumberFormat
@@ -77,18 +77,19 @@ import java.util.Locale
 @Composable
 fun DetailScreen(
     navController: NavController,
-    houseId: String,
+    propertyId: String,
     viewModel: DetailViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val ad by viewModel.property.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isBooking by viewModel.isBooking.collectAsState()
-    val existingRequest by viewModel.existingRequest.collectAsState()
-    val ownerInfo by viewModel.ownerInfo.collectAsState()
+    val uiState = viewModel.uiState
+    val ad = uiState.property
+    val isLoading = uiState.isLoading
+    val isBooking = uiState.isBooking
+    val existingRequest = uiState.existingRequest
+    val ownerInfo = uiState.ownerInfo
 
-    LaunchedEffect(houseId) {
-        viewModel.loadPropertyDetails(houseId)
+    LaunchedEffect(propertyId) {
+        viewModel.loadPropertyDetails(propertyId)
     }
 
     if (isLoading) {
@@ -102,6 +103,8 @@ fun DetailScreen(
     } else {
         val property = ad!!
         val isApplied = existingRequest != null
+        val canBook = property.approvalStatus == Property.APPROVAL_APPROVED &&
+            property.propertyStatus == Property.PROPERTY_AVAILABLE
 
         Scaffold(
             topBar = {
@@ -182,7 +185,7 @@ fun DetailScreen(
                                 modifier = Modifier
                                     .height(54.dp)
                                     .width(172.dp),
-                                enabled = !isBooking
+                                enabled = !isBooking && canBook
                             ) {
                                 if (isBooking) {
                                     CircularProgressIndicator(
@@ -192,7 +195,7 @@ fun DetailScreen(
                                     )
                                 } else {
                                     Text(
-                                        "Book Now",
+                                        if (canBook) "Book Now" else "Unavailable",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp
                                     )
@@ -342,7 +345,7 @@ fun DetailScreen(
 }
 
 @Composable
-fun PropertyImageGallery(property: House) {
+fun PropertyImageGallery(property: Property) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -443,7 +446,7 @@ fun ListingBadge(text: String, containerColor: Color, textColor: Color) {
 }
 
 @Composable
-fun RentOverviewCard(property: House) {
+fun RentOverviewCard(property: Property) {
     SectionCard {
         Text(
             text = "MONTHLY RENT",
@@ -522,7 +525,7 @@ fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-fun PropertyInfoGrid(property: House) {
+fun PropertyInfoGrid(property: Property) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PropertyInfoCard(
@@ -557,7 +560,7 @@ fun PropertyInfoGrid(property: House) {
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Info,
                 label = "Availability",
-                value = property.status.replaceFirstChar {
+                value = property.propertyStatus.replaceFirstChar {
                     if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                 }
             )
@@ -617,7 +620,7 @@ fun PropertyInfoCard(
 }
 
 @Composable
-fun OwnerDetailsCard(owner: MUser?, property: House) {
+fun OwnerDetailsCard(owner: MUser?, property: Property) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),

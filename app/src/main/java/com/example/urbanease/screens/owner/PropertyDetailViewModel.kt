@@ -1,52 +1,47 @@
 package com.example.urbanease.screens.owner
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urbanease.model.House
-import com.example.urbanease.repository.HouseRepository
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.urbanease.model.Property
+import com.example.urbanease.repository.PropertyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
 class PropertyDetailViewModel @Inject constructor(
-    private val repository: HouseRepository
+    private val repository: PropertyRepository
 ) : ViewModel() {
 
-    val property = mutableStateOf<House?>(null)
-    val isLoading = mutableStateOf(false)
-    val isUpdating = mutableStateOf(false)
+    var uiState by mutableStateOf(PropertyDetailUiState())
+        private set
 
     fun loadProperty(propertyId: String) {
-        isLoading.value = true
+        uiState = uiState.copy(isLoading = true)
         viewModelScope.launch {
             try {
-                val doc = FirebaseFirestore.getInstance().collection("properties")
-                    .document(propertyId).get().await()
-                property.value = doc.toObject(House::class.java)
+                uiState = uiState.copy(property = repository.getProperty(propertyId))
             } catch (e: Exception) {
-                // Handle error
+                uiState = uiState.copy(error = e.message)
             } finally {
-                isLoading.value = false
+                uiState = uiState.copy(isLoading = false)
             }
         }
     }
 
-    fun updateProperty(house: House) {
-        isUpdating.value = true
+    fun updateProperty(property: Property) {
+        uiState = uiState.copy(isUpdating = true)
         viewModelScope.launch {
             try {
-                FirebaseFirestore.getInstance().collection("properties")
-                    .document(house.houseId)
-                    .set(house).await()
-                property.value = house
+                repository.updateOwnerProperty(property)
+                uiState = uiState.copy(property = property)
             } catch (e: Exception) {
-                // Handle error
+                uiState = uiState.copy(error = e.message)
             } finally {
-                isUpdating.value = false
+                uiState = uiState.copy(isUpdating = false)
             }
         }
     }

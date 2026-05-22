@@ -1,6 +1,5 @@
 package com.example.urbanease.screens.owner
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -28,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import com.example.urbanease.ui.theme.BrandGreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.urbanease.ui.theme.BrandGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,8 +49,10 @@ fun PropertyDetailScreen(
     propertyId: String,
     viewModel: PropertyDetailViewModel = hiltViewModel()
 ) {
-    val property = viewModel.property.value
-    val isLoading = viewModel.isLoading.value
+    val uiState = viewModel.uiState
+    val property = uiState.property
+    val isLoading = uiState.isLoading
+    val isUpdating = uiState.isUpdating
 
     LaunchedEffect(propertyId) {
         viewModel.loadProperty(propertyId)
@@ -159,7 +160,7 @@ fun PropertyDetailScreen(
                         ))
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !viewModel.isUpdating.value,
+                    enabled = !isUpdating,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BrandGreen,
                         contentColor = Color.White
@@ -167,7 +168,7 @@ fun PropertyDetailScreen(
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
                 ) {
-                    if (viewModel.isUpdating.value) {
+                    if (isUpdating) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
                         Text("Save Changes", fontWeight = FontWeight.Bold, fontSize = 16.sp)

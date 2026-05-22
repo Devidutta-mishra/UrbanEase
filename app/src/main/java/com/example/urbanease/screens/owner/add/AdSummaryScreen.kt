@@ -46,7 +46,7 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
 import com.example.urbanease.components.AnimatedButton
-import com.example.urbanease.model.PostAdViewModel
+import com.example.urbanease.screens.owner.add.PostAdViewModel
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings
@@ -55,8 +55,9 @@ import com.example.urbanease.ui.theme.BrandGreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdSummaryScreen(navController: NavHostController, viewModel: PostAdViewModel) {
-    val ad = viewModel.ad.value
-    val isLoading by viewModel.isLoading
+    val uiState = viewModel.uiState
+    val ad = uiState.ad
+    val isLoading = uiState.isLoading
 
     Scaffold(
         topBar = {
@@ -159,7 +160,7 @@ fun AdSummaryScreen(navController: NavHostController, viewModel: PostAdViewModel
             }
 
             // Photos Section
-            if (viewModel.selectedImages.isNotEmpty()) {
+            if (uiState.selectedImages.isNotEmpty()) {
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically(
@@ -179,7 +180,7 @@ fun AdSummaryScreen(navController: NavHostController, viewModel: PostAdViewModel
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(viewModel.selectedImages) { uri ->
+                        items(uiState.selectedImages) { uri ->
                             androidx.compose.foundation.Image(
                                 painter = rememberAsyncImagePainter(uri),
                                 contentDescription = null,
@@ -270,7 +271,7 @@ fun AdSummaryScreen(navController: NavHostController, viewModel: PostAdViewModel
                 )
             }
 
-            viewModel.errorMessage.value?.let { error ->
+            uiState.errorMessage?.let { error ->
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn(

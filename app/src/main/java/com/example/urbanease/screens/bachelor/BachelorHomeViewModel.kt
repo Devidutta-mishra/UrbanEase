@@ -1,13 +1,15 @@
 package com.example.urbanease.screens.bachelor
 
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.urbanease.model.House
+import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
-import com.example.urbanease.repository.HouseRepository
+import com.example.urbanease.repository.AuthRepository
+import com.example.urbanease.repository.PropertyRepository
 import com.example.urbanease.repository.UserRepository
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -21,29 +23,29 @@ data class PropertyFilters(
 
 @HiltViewModel
 class BachelorHomeViewModel @Inject constructor(
-    private val repository: HouseRepository,
-    private val userRepository: UserRepository
-    ) : ViewModel() {
-    val ads = mutableStateOf<List<House>>(emptyList())
-    val userProfile = mutableStateOf<MUser?>(null)
-    val searchQuery = mutableStateOf("")
-    val filters = mutableStateOf(PropertyFilters())
-    val isLoading = mutableStateOf(false)
-    private var adsListener: ListenerRegistration? = null
+    private val repository: PropertyRepository,
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
-    val filteredAds: List<House>
+    var uiState by mutableStateOf(BachelorHomeUiState())
+        private set
+
+    private var propertiesListener: ListenerRegistration? = null
+
+    val filteredProperties: List<Property>
         get() {
-            var result = ads.value
+            var result = uiState.properties
 
             // Search filter
-            if (searchQuery.value.isNotEmpty()) {
+            if (uiState.searchQuery.isNotEmpty()) {
                 result = result.filter { 
-                    it.location.contains(searchQuery.value, ignoreCase = true) 
+                    it.location.contains(uiState.searchQuery, ignoreCase = true) 
                 }
             }
 
             // Industry level filters
-            val f = filters.value
+            val f = uiState.filters
             if (f.bhk != null) {
                 result = result.filter { it.rooms == f.bhk }
             }
@@ -61,45 +63,51 @@ class BachelorHomeViewModel @Inject constructor(
         }
 
     init {
-        loadAllAds()
+        loadAllProperties()
         loadUserProfile()
     }
 
     private fun loadUserProfile() {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
-            userRepository.getUser(currentUser.uid) { profile ->
-                userProfile.value = profile
+        val currentUserId = authRepository.currentUserId
+        if (currentUserId != null) {
+            userRepository.getUser(currentUserId) { profile ->
+                uiState = uiState.copy(userProfile = profile)
             }
         }
     }
 
+    fun logout() {
+        authRepository.logout()
+    }
+
     fun onSearchQueryChanged(query: String) {
-        searchQuery.value = query
+        uiState = uiState.copy(searchQuery = query)
     }
 
     fun updateFilters(newFilters: PropertyFilters) {
-        filters.value = newFilters
+        uiState = uiState.copy(filters = newFilters)
     }
 
     fun clearFilters() {
-        filters.value = PropertyFilters()
+        uiState = uiState.copy(filters = PropertyFilters())
     }
 
-    fun loadAllAds() {
-        Log.d("BachelorHomeVM", "Loading all ads...")
-        isLoading.value = true
-        adsListener?.remove()
+    fun loadAllProperties() {
+        Log.d("BachelorHomeVM", "Loading all properties...")
+        uiState = uiState.copy(isLoading = true)
+        propertiesListener?.remove()
 
-        adsListener = repository.listenToApprovedAds { fetchedAds ->
-            Log.d("BachelorHomeVM", "Displaying ${fetchedAds.size} ads")
-            ads.value = fetchedAds
-            isLoading.value = false
+        propertiesListener = repository.listenToApprovedProperties { fetchedProperties ->
+            Log.d("BachelorHomeVM", "Displaying ${fetchedProperties.size} properties")
+            uiState = uiState.copy(
+                properties = fetchedProperties,
+                isLoading = false
+            )
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        adsListener?.remove()
+        propertiesListener?.remove()
     }
 }

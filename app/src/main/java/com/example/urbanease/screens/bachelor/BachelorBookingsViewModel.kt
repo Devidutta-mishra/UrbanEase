@@ -1,103 +1,73 @@
 package com.example.urbanease.screens.bachelor
 
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.urbanease.model.BookingRequest
-import com.example.urbanease.model.House
+import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.urbanease.repository.AuthRepository
+import com.example.urbanease.repository.PropertyRepository
 import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class BachelorBookingUIModel(
     val request: BookingRequest,
-    val property: House?,
+    val property: Property?,
     val owner: MUser? = null
 )
 
 @HiltViewModel
-class BachelorBookingsViewModel @Inject constructor() : ViewModel() {
-    val bookings = mutableStateOf<List<BachelorBookingUIModel>>(emptyList())
-    val isLoading = mutableStateOf(false)
+class BachelorBookingsViewModel @Inject constructor(
+    private val propertyRepository: PropertyRepository,
+    private val authRepository: AuthRepository
+) : ViewModel() {
+    
+    var uiState by mutableStateOf(BachelorBookingsUiState())
+        private set
+
     private var bookingsListener: ListenerRegistration? = null
 
     init {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
-            fetchBookingsForBachelor(currentUser.uid)
+        val currentUserId = authRepository.currentUserId
+        if (currentUserId != null) {
+            fetchBookingsForBachelor(currentUserId)
         }
     }
 
     private fun fetchBookingsForBachelor(bachelorId: String) {
-        isLoading.value = true
+        uiState = uiState.copy(isLoading = true)
         bookingsListener?.remove()
         
-        bookingsListener = FirebaseFirestore.getInstance().collection("requests")
-            .whereEqualTo("bachelorId", bachelorId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e("BachelorBookingsVM", "Error fetching bookings: ${error.message}")
-                    isLoading.value = false
-                    return@addSnapshotListener
-                }
-                
-                if (snapshot != null) {
-                    val rawRequestList = snapshot.toObjects(BookingRequest::class.java)
-                    
-                    // Filter to show each house once - take the latest request for each propertyId
+        bookingsListener = propertyRepository.listenToRequestsForBachelor(bachelorId) { rawRequestList ->
+            viewModelScope.launch {
+                try {
                     val requestList = rawRequestList
+                        .filterNot { it.status == "viewed" }
                         .sortedByDescending { it.appliedAt }
                         .distinctBy { it.propertyId }
-                    
-                    val uiModels = mutableListOf<BachelorBookingUIModel>()
-                    var processedCount = 0
-                    
-                    if (requestList.isEmpty()) {
-                        bookings.value = emptyList()
-                        isLoading.value = false
-                        return@addSnapshotListener
-                    }
 
-                    requestList.forEach { request ->
-                        val db = FirebaseFirestore.getInstance()
-                        
-                        // Fetch property and owner info
-                        db.collection("properties").document(request.propertyId).get()
-                            .addOnSuccessListener { propertyDoc ->
-                                val property = propertyDoc.toObject(House::class.java)
-                                
-                                db.collection("users").document(request.ownerId).get()
-                                    .addOnSuccessListener { ownerDoc ->
-                                        val owner = ownerDoc.toObject(MUser::class.java)
-                                        uiModels.add(BachelorBookingUIModel(request, property, owner))
-                                        processedCount++
-                                        checkIfDone(processedCount, requestList.size, uiModels)
-                                    }
-                                    .addOnFailureListener {
-                                        uiModels.add(BachelorBookingUIModel(request, property, null))
-                                        processedCount++
-                                        checkIfDone(processedCount, requestList.size, uiModels)
-                                    }
-                            }
-                            .addOnFailureListener {
-                                uiModels.add(BachelorBookingUIModel(request, null, null))
-                                processedCount++
-                                checkIfDone(processedCount, requestList.size, uiModels)
-                            }
-                    }
-                } else {
-                    isLoading.value = false
+                    uiState = uiState.copy(
+                        bookings = requestList.map { request ->
+                            BachelorBookingUIModel(
+                                request = request,
+                                property = propertyRepository.getProperty(request.propertyId),
+                                owner = propertyRepository.getOwner(request.ownerId)
+                            )
+                        }.sortedByDescending { it.request.appliedAt }
+                    )
+                } catch (e: Exception) {
+                    Log.e("BachelorBookingsVM", "Error building bookings: ${e.message}", e)
+                    uiState = uiState.copy(bookings = emptyList(), error = e.message)
+                } finally {
+                    uiState = uiState.copy(isLoading = false)
                 }
             }
-    }
-
-    private fun checkIfDone(processedCount: Int, total: Int, uiModels: MutableList<BachelorBookingUIModel>) {
-        if (processedCount == total) {
-            bookings.value = uiModels.sortedByDescending { it.request.appliedAt }
-            isLoading.value = false
         }
     }
 

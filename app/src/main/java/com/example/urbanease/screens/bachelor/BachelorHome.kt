@@ -79,12 +79,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
-import com.example.urbanease.model.House
+import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.theme.BrandGreen
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Locale
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -116,17 +114,18 @@ fun BachelorHomeScreen(
     viewModel: BachelorHomeViewModel,
     paddingValues: PaddingValues
 ) {
-    val ads = viewModel.filteredAds
-    val isLoading = viewModel.isLoading.value
-    val searchQuery = viewModel.searchQuery.value
-    val currentFilters = viewModel.filters.value
+    val uiState = viewModel.uiState
+    val properties = viewModel.filteredProperties
+    val isLoading = uiState.isLoading
+    val searchQuery = uiState.searchQuery
+    val currentFilters = uiState.filters
     
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showFilterSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadAllAds()
+        viewModel.loadAllProperties()
     }
 
     if (showFilterSheet) {
@@ -165,7 +164,7 @@ fun BachelorHomeScreen(
                     modifier = Modifier.align(Alignment.Center),
                     color = BrandGreen
                 )
-            } else if (ads.isEmpty()) {
+            } else if (properties.isEmpty()) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -204,9 +203,9 @@ fun BachelorHomeScreen(
                     contentPadding = PaddingValues(bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    items(ads) { ad ->
+                    items(properties) { ad ->
                         BachelorPropertyCard(ad) {
-                            navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.houseId}")
+                            navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.propertyId}")
                         }
                     }
                 }
@@ -532,7 +531,7 @@ fun FilterChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun BachelorPropertyCard(ad: House, onClick: () -> Unit) {
+fun BachelorPropertyCard(ad: Property, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -678,8 +677,9 @@ fun ApplicationsScreen(
     paddingValues: PaddingValues,
     viewModel: BachelorBookingsViewModel = hiltViewModel()
 ) {
-    val allBookings = viewModel.bookings.value
-    val isLoading = viewModel.isLoading.value
+    val uiState = viewModel.uiState
+    val allBookings = uiState.bookings
+    val isLoading = uiState.isLoading
 
     Column(
         modifier = Modifier
@@ -883,9 +883,9 @@ fun EmptyState(icon: ImageVector, title: String, description: String) {
 
 @Composable
 fun BachelorProfileScreen(navController: NavHostController, paddingValues: PaddingValues, viewModel: BachelorHomeViewModel = hiltViewModel()) {
-    val userProfile = viewModel.userProfile.value
+    val uiState = viewModel.uiState
+    val userProfile = uiState.userProfile
     var showLogoutDialog by remember { mutableStateOf(false) }
-    val currentUser = FirebaseAuth.getInstance().currentUser
 
     Column(
         modifier = Modifier
@@ -972,7 +972,7 @@ fun BachelorProfileScreen(navController: NavHostController, paddingValues: Paddi
                 .background(Color.White)
         ) {
             ProfileMenuItem(Icons.Default.Person, "Personal Information", userProfile?.displayName ?: "N/A")
-            ProfileMenuItem(Icons.Default.Email, "Email Address", currentUser?.email ?: "N/A")
+            ProfileMenuItem(Icons.Default.Email, "Email Address", userProfile?.email ?: "N/A")
             ProfileMenuItem(Icons.Default.Call, "Phone Number", userProfile?.phoneNumber ?: "N/A")
             ProfileMenuItem(Icons.Default.Notifications, "Notifications", "On")
             
@@ -1048,7 +1048,7 @@ fun BachelorProfileScreen(navController: NavHostController, paddingValues: Paddi
             confirmButton = {
                 Button(
                     onClick = {
-                        FirebaseAuth.getInstance().signOut()
+                        viewModel.logout()
                         navController.navigate(UrbanScreens.LoginScreen.name) {
                             popUpTo(0)
                         }
