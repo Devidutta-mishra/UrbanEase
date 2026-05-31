@@ -1,5 +1,6 @@
 package com.example.urbanease.repository
 
+import android.util.Log
 import com.example.urbanease.model.MUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -12,13 +13,30 @@ class UserRepository @Inject constructor() {
     private val usersRef = firestore.collection("users")
 
     fun getUser(userId: String, onResult: (MUser?) -> Unit) {
-        usersRef.document(userId).get()
-            .addOnSuccessListener { document ->
-                onResult(document.toObject(MUser::class.java))
-            }
-            .addOnFailureListener {
-                onResult(null)
-            }
+        Log.d("UrbanEase_Debug", "UserRepository: getUser starting for UID: $userId")
+        try {
+            usersRef.document(userId).get()
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val document = task.result
+                        if (document != null && document.exists()) {
+                            val user = document.toObject(MUser::class.java)
+                            Log.d("UrbanEase_Debug", "UserRepository: getUser success. User found: ${user?.displayName}, Role: ${user?.role}")
+                            onResult(user)
+                        } else {
+                            Log.d("UrbanEase_Debug", "UserRepository: getUser success but document does not exist or is null")
+                            onResult(null)
+                        }
+                    } else {
+                        val exception = task.exception
+                        Log.e("UrbanEase_Debug", "UserRepository: getUser task failed", exception)
+                        onResult(null)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e("UrbanEase_Debug", "UserRepository: Exception in getUser", e)
+            onResult(null)
+        }
     }
 
     fun listenToAllUsers(onResult: (List<MUser>) -> Unit): ListenerRegistration {

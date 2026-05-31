@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urbanease.model.Property
 import com.example.urbanease.repository.PropertyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -23,25 +22,15 @@ class PropertyDetailViewModel @Inject constructor(
         uiState = uiState.copy(isLoading = true)
         viewModelScope.launch {
             try {
-                uiState = uiState.copy(property = repository.getProperty(propertyId))
+                val property = repository.getProperty(propertyId)
+                uiState = uiState.copy(
+                    property = property,
+                    error = null
+                )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
                 uiState = uiState.copy(isLoading = false)
-            }
-        }
-    }
-
-    fun updateProperty(property: Property) {
-        uiState = uiState.copy(isUpdating = true)
-        viewModelScope.launch {
-            try {
-                repository.updateOwnerProperty(property)
-                uiState = uiState.copy(property = property)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message)
-            } finally {
-                uiState = uiState.copy(isUpdating = false)
             }
         }
     }

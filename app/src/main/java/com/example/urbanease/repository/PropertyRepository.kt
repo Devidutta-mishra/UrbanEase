@@ -144,9 +144,31 @@ class PropertyRepository @Inject constructor() {
         propertiesRef.document(newProperty.propertyId).set(newProperty, SetOptions.merge()).await()
     }
 
-    suspend fun updateOwnerProperty(property: Property) {
+    suspend fun updateOwnerProperty(property: Property): Property {
+        val existingSnapshot = propertiesRef.document(property.propertyId).get().await()
+        val existingProperty = existingSnapshot.toProperty()
+            ?: throw IllegalArgumentException("Property not found")
+
+        val hasListingChanges = existingProperty.location != property.location ||
+            existingProperty.title != property.title ||
+            existingProperty.description != property.description ||
+            existingProperty.rent != property.rent ||
+            existingProperty.rooms != property.rooms ||
+            existingProperty.bathrooms != property.bathrooms ||
+            existingProperty.floorNo != property.floorNo ||
+            existingProperty.furnishing != property.furnishing ||
+            existingProperty.imageUrls != property.imageUrls
+
+        val approvalStatus = if (
+            existingProperty.approvalStatus == Property.APPROVAL_APPROVED && hasListingChanges
+        ) {
+            Property.APPROVAL_PENDING
+        } else {
+            existingProperty.approvalStatus
+        }
+
         val updates = mapOf(
-            "ownerId" to property.ownerId,
+            "ownerId" to existingProperty.ownerId,
             "location" to property.location,
             "title" to property.title,
             "description" to property.description,
@@ -156,9 +178,22 @@ class PropertyRepository @Inject constructor() {
             "floorNo" to property.floorNo,
             "furnishing" to property.furnishing,
             "imageUrls" to property.imageUrls,
-            "createdAt" to property.createdAt
+            "approvalStatus" to approvalStatus,
+            "createdAt" to existingProperty.createdAt
         )
         propertiesRef.document(property.propertyId).set(updates, SetOptions.merge()).await()
+        return existingProperty.copy(
+            location = property.location,
+            title = property.title,
+            description = property.description,
+            rent = property.rent,
+            rooms = property.rooms,
+            bathrooms = property.bathrooms,
+            floorNo = property.floorNo,
+            furnishing = property.furnishing,
+            imageUrls = property.imageUrls,
+            approvalStatus = approvalStatus
+        )
     }
 
     suspend fun updateApprovalStatus(propertyId: String, approvalStatus: String) {

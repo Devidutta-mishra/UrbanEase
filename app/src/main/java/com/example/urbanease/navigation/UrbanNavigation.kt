@@ -24,6 +24,7 @@ import com.example.urbanease.screens.owner.add.AdSummaryScreen
 import com.example.urbanease.screens.owner.add.LocationScreen
 import com.example.urbanease.screens.owner.add.PhotoScreen
 import com.example.urbanease.screens.owner.add.RentScreen
+import com.example.urbanease.screens.owner.edit.EditPropertyScreen
 import com.example.urbanease.screens.splash.SplashScreen
 import com.example.urbanease.ui.animations.ScreenTransitions
 
@@ -95,6 +96,16 @@ fun UrbanNavigation(navController: NavHostController) {
         ) { backStackEntry ->
             val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
             PropertyDetailScreen(navController = navController, propertyId = propertyId)
+        }
+
+        composable(
+            route = "${UrbanScreens.EditPropertyScreen.name}/{propertyId}",
+            arguments = listOf(navArgument("propertyId") { type = NavType.StringType }),
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) { backStackEntry ->
+            val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
+            EditPropertyScreen(navController = navController, propertyId = propertyId)
         }
 
         composable(

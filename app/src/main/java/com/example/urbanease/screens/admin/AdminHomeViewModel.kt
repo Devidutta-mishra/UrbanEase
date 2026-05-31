@@ -6,8 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urbanease.model.Property
-import com.example.urbanease.model.MUser
 import com.example.urbanease.repository.AuthRepository
 import com.example.urbanease.repository.PropertyRepository
 import com.example.urbanease.repository.UserRepository
@@ -100,6 +98,10 @@ class AdminHomeViewModel @Inject constructor(
                 Log.e("AdminHomeVM", "Unable to update property status: ${e.message}", e)
             }
         }
+    }
+
+    fun logout() {
+        authRepository.logout()
     }
 
     override fun onCleared() {

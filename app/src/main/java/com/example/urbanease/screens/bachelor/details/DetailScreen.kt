@@ -50,7 +50,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +77,7 @@ import java.util.Locale
 fun DetailScreen(
     navController: NavController,
     propertyId: String,
-    viewModel: DetailViewModel = hiltViewModel()
+    viewModel: DetailViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
@@ -101,10 +100,10 @@ fun DetailScreen(
             Text("Property not found")
         }
     } else {
-        val property = ad!!
+        val property = ad
         val isApplied = existingRequest != null
-        val canBook = property.approvalStatus == Property.APPROVAL_APPROVED &&
-            property.propertyStatus == Property.PROPERTY_AVAILABLE
+        val canBook = (property.approvalStatus == Property.APPROVAL_APPROVED) &&
+            (property.propertyStatus == Property.PROPERTY_AVAILABLE)
 
         Scaffold(
             topBar = {

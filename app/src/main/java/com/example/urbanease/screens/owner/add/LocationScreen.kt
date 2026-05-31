@@ -50,7 +50,7 @@ fun LocationScreen(
     navController: NavController,
     viewModel: PostAdViewModel = hiltViewModel()
 ) {
-    val selectedLocation = rememberSaveable { mutableStateOf<String?>(null) }
+    val formState = viewModel.formState
 
     Scaffold(
         topBar = {
@@ -99,15 +99,14 @@ fun LocationScreen(
             ) {
                 AnimatedButton(
                     onClick = {
-                        selectedLocation.value?.let { location ->
-                            viewModel.updateLocation(location)
+                        if (formState.location.isNotBlank()) {
                             navController.navigate(UrbanScreens.RentScreen.name)
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    enabled = selectedLocation.value != null,
+                    enabled = formState.location.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BrandGreen, // Industry Standard Green
                         contentColor = Color.White,
@@ -127,19 +126,11 @@ fun LocationScreen(
                 .padding(padding)
                 .padding(horizontal = 24.dp)
         ) {
-            val locations = listOf(
-                "Patia",
-                "Khandagiri",
-                "Ganga Nagar",
-                "Siripur",
-                "Jaydev Vihar",
-                "DLF Cyber City",
-                "Chandrasekharpur"
-            )
+            val locations = PropertyFormConfig.locationOptions.map { it.label }
 
             items(locations.size) { index ->
                 val location = locations[index]
-                val isSelected = selectedLocation.value == location
+                val isSelected = formState.location == location
 
                 AnimatedVisibility(
                     visible = true,
@@ -164,7 +155,7 @@ fun LocationScreen(
                             .padding(vertical = 6.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) Color.Black else Color(0xFFF7F7F7))
-                            .clickable { selectedLocation.value = location }
+                            .clickable { viewModel.updateField(PropertyField.LOCATION, location) }
                             .padding(20.dp)
                     ) {
                         Text(

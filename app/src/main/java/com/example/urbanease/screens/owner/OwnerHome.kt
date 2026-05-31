@@ -32,7 +32,7 @@ import com.example.urbanease.navigation.UrbanScreens
 @Composable
 fun OwnerHome(
     navController: NavController,
-    viewModel: OwnerHomeViewModel = hiltViewModel()
+    viewModel: OwnerHomeViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState
     val properties = uiState.properties
@@ -73,12 +73,12 @@ fun OwnerHome(
                         color = Color.DarkGray,
                         fontSize = 14.sp
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                 }
 
                 item {
                     StatCard("TOTAL PROPERTIES", uiState.totalProperties.toString(), Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                 }
 
                 if (isLoading) {
@@ -92,7 +92,7 @@ fun OwnerHome(
                         Box(
                             Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 64.dp), 
+                                .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -100,12 +100,12 @@ fun OwnerHome(
                                     painter = painterResource(id = R.drawable.houseimage),
                                     contentDescription = null,
                                     modifier = Modifier
-                                        .size(180.dp)
+                                        .size(100.dp)
                                         .clip(RoundedCornerShape(24.dp)),
                                     contentScale = ContentScale.Crop,
                                     alpha = 0.6f
                                 )
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     "No properties yet",
                                     style = MaterialTheme.typography.titleLarge,
@@ -118,7 +118,7 @@ fun OwnerHome(
                                     color = Color.DarkGray,
                                     fontSize = 14.sp
                                 )
-                                Spacer(modifier = Modifier.height(32.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Button(
                                     onClick = { navController.navigate(UrbanScreens.LocationScreen.name) },
                                     colors = ButtonDefaults.buttonColors(
@@ -156,8 +156,6 @@ fun OwnerHeader() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Search, contentDescription = "Search", tint = BrandGreen)
-            Spacer(modifier = Modifier.width(8.dp))
             Text("UrbanEase", fontWeight = FontWeight.Bold, color = Color(0xFF050234), fontSize = 20.sp)
         }
         Image(
@@ -216,6 +214,12 @@ fun PropertyCard(ad: Property, onClick: () -> Unit) {
                         .height(200.dp),
                     contentScale = ContentScale.Crop
                 )
+                VerificationBadge(
+                    isVerified = ad.approvalStatus == Property.APPROVAL_APPROVED,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                )
             }
             
             Column(modifier = Modifier.padding(16.dp)) {
@@ -250,6 +254,36 @@ fun PropertyCard(ad: Property, onClick: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun VerificationBadge(isVerified: Boolean, modifier: Modifier = Modifier) {
+    val backgroundColor = if (isVerified) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+    val contentColor = if (isVerified) Color(0xFF2E7D32) else Color(0xFFE65100)
+    val icon = if (isVerified) Icons.Default.Verified else Icons.Default.Pending
+    val label = if (isVerified) "Verified" else "Not verified"
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(backgroundColor)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = label,
+            color = contentColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 package com.example.urbanease.screens.splash
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -23,54 +24,74 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.urbanease.navigation.UrbanScreens
+import com.example.urbanease.ui.theme.BrandGreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
     navController: NavController,
-    viewModel: SplashViewModel = hiltViewModel()
+    viewModel: SplashViewModel = hiltViewModel(),
 ) {
+    Log.d("SplashScreen", "Rendering SplashScreen")
 
     val scale = remember {
-        Animatable(0f)
+        Animatable(0.5f)
     }
 
     var loading by remember { mutableStateOf(true) }
     var showProgressBar by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = true) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessVeryLow
+    LaunchedEffect(Unit) {
+        Log.d("UrbanEase_Debug", "SplashScreen: LaunchedEffect started")
+        
+        // Start animation in a separate coroutine to not block the role fetching
+        launch {
+            Log.d("UrbanEase_Debug", "SplashScreen: Animation starting")
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
             )
-        )
-        delay(500L)
+            Log.d("UrbanEase_Debug", "SplashScreen: Animation completed")
+        }
 
+        delay(1000L) // Give a little time for splash feel
+
+        Log.d("UrbanEase_Debug", "SplashScreen: Calling viewModel.getCurrentUserRole")
         viewModel.getCurrentUserRole { role ->
-            when (role) {
-                "bachelor" -> navController.navigate(UrbanScreens.BachelorScreen.name)
-                "owner" -> navController.navigate(UrbanScreens.OwnerScreen.name)
-                "admin" -> navController.navigate(UrbanScreens.AdminScreen.name)
-                else -> navController.navigate(UrbanScreens.LoginScreen.name)
+            Log.d("UrbanEase_Debug", "SplashScreen: Role callback received with role: $role")
+            
+            val destination = when (role) {
+                "bachelor" -> UrbanScreens.BachelorScreen.name
+                "owner" -> UrbanScreens.OwnerScreen.name
+                "admin" -> UrbanScreens.AdminScreen.name
+                else -> UrbanScreens.LoginScreen.name
+            }
+
+            Log.d("UrbanEase_Debug", "SplashScreen: Navigating to $destination")
+            navController.navigate(destination) {
+                popUpTo(UrbanScreens.SplashScreen.name) { inclusive = true }
             }
             loading = false
         }
     }
 
     LaunchedEffect(Unit) {
-        delay(1000L)
+        delay(2000L) // Show progress bar if it takes too long
         showProgressBar = true
     }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
@@ -83,13 +104,14 @@ fun SplashScreen(
             Text(
                 text = "UrbanEase",
                 style = MaterialTheme.typography.displayMedium,
-                color = Color.Red.copy(alpha = 0.85f)
+                fontWeight = FontWeight.Bold,
+                color = BrandGreen
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             if (loading && showProgressBar) {
-                CircularProgressIndicator(color = Color.Red.copy(alpha = 0.5f))
+                CircularProgressIndicator(color = BrandGreen)
             }
         }
     }

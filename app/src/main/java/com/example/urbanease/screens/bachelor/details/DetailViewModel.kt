@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.urbanease.model.Property
 import com.example.urbanease.model.BookingRequest
-import com.example.urbanease.model.MUser
 import com.example.urbanease.repository.AuthRepository
 import com.example.urbanease.repository.PropertyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DetailViewModel @Inject constructor(
     private val repository: PropertyRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     var uiState by mutableStateOf(DetailUiState())
@@ -38,7 +37,7 @@ class DetailViewModel @Inject constructor(
             }
 
             val currentUserId = authRepository.currentUserId
-            if (currentUserId != null && prop != null) {
+            if ((currentUserId != null) && (prop != null)) {
                 bookingListenerJob?.cancel()
                 bookingListenerJob = launch {
                     repository.listenToBookingRequest(currentUserId, propertyId).collect {

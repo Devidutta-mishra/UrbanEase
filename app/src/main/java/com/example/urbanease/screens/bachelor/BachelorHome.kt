@@ -681,6 +681,18 @@ fun ApplicationsScreen(
     val allBookings = uiState.bookings
     val isLoading = uiState.isLoading
 
+    var selectedStatusTab by remember { mutableStateOf(0) }
+
+    // Filter bookings by status
+    val filteredBookings = when (selectedStatusTab) {
+        0 -> allBookings.filter { it.request.status == "pending" }
+        1 -> allBookings.filter { it.request.status == "approved" }
+        2 -> allBookings.filter { it.request.status == "rejected" }
+        else -> allBookings
+    }
+
+    val statusTabs = listOf("Pending", "Approved", "Rejected")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -696,22 +708,55 @@ fun ApplicationsScreen(
             modifier = Modifier.padding(24.dp)
         )
 
+        // Status Filter Tabs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            statusTabs.forEachIndexed { index, status ->
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { selectedStatusTab = index },
+                    color = if (selectedStatusTab == index) BrandGreen else Color.Transparent,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = status,
+                            color = if (selectedStatusTab == index) Color.White else Color.Gray,
+                            fontWeight = if (selectedStatusTab == index) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandGreen)
             }
-        } else if (allBookings.isEmpty()) {
+        } else if (filteredBookings.isEmpty()) {
             EmptyState(
                 icon = Icons.AutoMirrored.Filled.List,
-                title = "No Applications Yet",
-                description = "Your property applications will appear here. Owner contact details are provided instantly."
+                title = "No ${statusTabs[selectedStatusTab].lowercase()} applications",
+                description = "Your ${statusTabs[selectedStatusTab].lowercase()} applications will appear here."
             )
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(allBookings) { booking ->
+                items(filteredBookings) { booking ->
                     BookingItem(booking) {
                         navController.navigate("${UrbanScreens.DetailScreen.name}/${booking.request.propertyId}")
                     }
@@ -723,6 +768,20 @@ fun ApplicationsScreen(
 
 @Composable
 fun BookingItem(booking: BachelorBookingUIModel, onCardClick: () -> Unit) {
+    val statusColor = when (booking.request.status) {
+        "pending" -> Color(0xFFFFA500) // Orange for pending
+        "approved" -> BrandGreen       // Green for approved
+        "rejected" -> Color(0xFFFF4444) // Red for rejected
+        else -> BrandGreen
+    }
+
+    val statusLabel = when (booking.request.status) {
+        "pending" -> "PENDING"
+        "approved" -> "APPROVED"
+        "rejected" -> "REJECTED"
+        else -> "APPLIED"
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -754,13 +813,13 @@ fun BookingItem(booking: BachelorBookingUIModel, onCardClick: () -> Unit) {
                 }
 
                 Surface(
-                    color = BrandGreen.copy(alpha = 0.1f),
+                    color = statusColor.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "APPLIED",
+                        text = statusLabel,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        color = BrandGreen,
+                        color = statusColor,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )

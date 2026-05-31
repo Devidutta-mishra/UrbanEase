@@ -8,18 +8,51 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,13 +71,18 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
 import com.example.urbanease.model.Property
 import com.example.urbanease.navigation.UrbanScreens
-import com.example.urbanease.ui.theme.*
+import com.example.urbanease.ui.theme.BackgroundLight
+import com.example.urbanease.ui.theme.PrimaryTeal
+import com.example.urbanease.ui.theme.StatusApproved
+import com.example.urbanease.ui.theme.StatusApprovedText
+import com.example.urbanease.ui.theme.TextGrey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = hiltViewModel()) {
     val uiState = viewModel.uiState
     var selectedFilter by remember { mutableStateOf("All") }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     val filters = listOf("All", "Owners", "Bachelors")
 
     Scaffold(
@@ -70,6 +108,9 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showLogoutDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout", tint = Color.Black)
+                    }
                     IconButton(onClick = {
                         // Profile click
                     }) {
@@ -158,6 +199,37 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
             
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Logout", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to logout?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        navController.navigate(UrbanScreens.LoginScreen.name) {
+                            popUpTo(0)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("Logout", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showLogoutDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 

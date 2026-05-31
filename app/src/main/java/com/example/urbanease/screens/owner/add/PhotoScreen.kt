@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.components.AnimatedButton
-import com.example.urbanease.screens.owner.add.PostAdViewModel
 import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings
@@ -62,6 +61,8 @@ fun PhotoScreen(navController: NavHostController, viewModel: PostAdViewModel) {
     ) { uris: List<Uri> ->
         uris.forEach { viewModel.addImage(it) }
     }
+
+    val uiState = viewModel.uiState
 
     Scaffold(
         topBar = {
@@ -116,7 +117,7 @@ fun PhotoScreen(navController: NavHostController, viewModel: PostAdViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    enabled = viewModel.selectedImages.isNotEmpty(),
+                    enabled = uiState.selectedImages.isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BrandGreen, // Industry Standard Green
                         contentColor = Color.White,
@@ -145,118 +146,118 @@ fun PhotoScreen(navController: NavHostController, viewModel: PostAdViewModel) {
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
         ) {
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Upload Area - with fade animation
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(
-                animationSpec = tween(
-                    durationMillis = AnimationDurations.NORMAL,
-                    easing = AnimationEasings.DEFAULT
-                )
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFF7F7F7))
-                    .clickable { launcher.launch("image/*") },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Photos",
-                        modifier = Modifier.size(32.dp),
-                        tint = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Tap to upload photos",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black
-                    )
-                }
-            }
-        }
-
-        if (viewModel.selectedImages.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(32.dp))
-
+            // Upload Area - with fade animation
             AnimatedVisibility(
                 visible = true,
-                enter = slideInVertically(
-                    initialOffsetY = { fullHeight -> fullHeight / 4 },
-                    animationSpec = tween(
-                        durationMillis = AnimationDurations.NORMAL,
-                        easing = AnimationEasings.DEFAULT
-                    )
-                ) + fadeIn(
+                enter = fadeIn(
                     animationSpec = tween(
                         durationMillis = AnimationDurations.NORMAL,
                         easing = AnimationEasings.DEFAULT
                     )
                 )
             ) {
-                Text(
-                    text = "SELECTED PHOTOS (${viewModel.selectedImages.size})",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.DarkGray,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xFFF7F7F7))
+                        .clickable { launcher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Photos",
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.Black
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Tap to upload photos",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Black
+                        )
+                    }
+                }
             }
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(viewModel.selectedImages) { uri ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(
-                            animationSpec = tween(
-                                durationMillis = AnimationDurations.FAST,
-                                easing = AnimationEasings.DEFAULT
-                            )
+            if (uiState.selectedImages.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(32.dp))
+
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight / 4 },
+                        animationSpec = tween(
+                            durationMillis = AnimationDurations.NORMAL,
+                            easing = AnimationEasings.DEFAULT
                         )
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(140.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                        ) {
-                            Image(
-                                painter = rememberAsyncImagePainter(uri),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                            IconButton(
-                                onClick = { viewModel.removeImage(uri) },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(4.dp)
-                                    .size(28.dp)
-                                    .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(16.dp)
+                    ) + fadeIn(
+                        animationSpec = tween(
+                            durationMillis = AnimationDurations.NORMAL,
+                            easing = AnimationEasings.DEFAULT
+                        )
+                    )
+                ) {
+                    Text(
+                        text = "SELECTED PHOTOS (${uiState.selectedImages.size})",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.DarkGray,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.selectedImages) { uri ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(
+                                animationSpec = tween(
+                                    durationMillis = AnimationDurations.FAST,
+                                    easing = AnimationEasings.DEFAULT
                                 )
+                            )
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(140.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(uri),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                IconButton(
+                                    onClick = { viewModel.removeImage(uri) },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(28.dp)
+                                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(24.dp))
         }
-        Spacer(modifier = Modifier.height(24.dp))
     }
-}
 }
