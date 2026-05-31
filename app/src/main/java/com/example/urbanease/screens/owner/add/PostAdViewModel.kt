@@ -10,6 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.urbanease.model.Property
 import com.example.urbanease.repository.AuthRepository
 import com.example.urbanease.repository.PropertyRepository
+import com.example.urbanease.screens.owner.add.form.PropertyField
+import com.example.urbanease.screens.owner.add.form.PropertyFormState
+import com.example.urbanease.screens.owner.add.form.toPropertyFormState
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch

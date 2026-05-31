@@ -19,6 +19,16 @@ data class PropertyFormFieldConfig(
 )
 
 object PropertyFormConfig {
+    val locationOptions = listOf(
+        DropdownOption("Patia", "Patia"),
+        DropdownOption("Khandagiri", "Khandagiri"),
+        DropdownOption("Ganga Nagar", "Ganga Nagar"),
+        DropdownOption("Siripur", "Siripur"),
+        DropdownOption("Jaydev Vihar", "Jaydev Vihar"),
+        DropdownOption("DLF Cyber City", "DLF Cyber City"),
+        DropdownOption("Chandrasekharpur", "Chandrasekharpur")
+    )
+
     val bhkOptions = listOf(
         DropdownOption("1RK", "1 RK"),
         DropdownOption("1BHK", "1 BHK"),
@@ -60,7 +70,8 @@ object PropertyFormConfig {
         PropertyFormFieldConfig(
             field = PropertyField.LOCATION,
             label = "Location",
-            placeholder = "Select location"
+            inputType = PropertyFormInputType.DROPDOWN,
+            options = locationOptions
         ),
         PropertyFormFieldConfig(
             field = PropertyField.TITLE,

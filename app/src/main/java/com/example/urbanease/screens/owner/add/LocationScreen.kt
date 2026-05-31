@@ -40,6 +40,8 @@ import androidx.navigation.NavController
 import com.example.urbanease.components.AnimatedButton
 import com.example.urbanease.screens.owner.add.PostAdViewModel
 import com.example.urbanease.navigation.UrbanScreens
+import com.example.urbanease.screens.owner.add.form.PropertyField
+import com.example.urbanease.screens.owner.add.form.PropertyFormConfig
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings
 import com.example.urbanease.ui.theme.BrandGreen
