@@ -15,11 +15,11 @@ import com.example.urbanease.screens.admin.AdminHome
 import com.example.urbanease.screens.bachelor.BachelorHome
 import com.example.urbanease.screens.bachelor.details.DetailScreen
 import com.example.urbanease.screens.login.LoginScreen
-import com.example.urbanease.screens.owner.OwnerHome
-import com.example.urbanease.screens.owner.PropertyDetailScreen
-import com.example.urbanease.screens.owner.RequestDetailScreen
-import com.example.urbanease.screens.owner.RequestsScreen
-import com.example.urbanease.screens.owner.SettingsScreen
+import com.example.urbanease.screens.owner.home.OwnerHome
+import com.example.urbanease.screens.owner.details.PropertyDetailScreen
+import com.example.urbanease.screens.owner.requests.RequestDetailScreen
+import com.example.urbanease.screens.owner.requests.RequestsScreen
+import com.example.urbanease.screens.owner.settings.SettingsScreen
 import com.example.urbanease.screens.owner.add.AdSummaryScreen
 import com.example.urbanease.screens.owner.add.LocationScreen
 import com.example.urbanease.screens.owner.add.PhotoScreen

@@ -1,0 +1,19 @@
+name: Bedrock Config
+version: 1.0.0
+schema: v1
+
+models:
+  - title: Claude Opus
+    provider: bedrock
+    model: anthropic.claude-opus-4-20250514-v1:0
+    region: us-east-1
+
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+
+defaultCompletionOptions:
+  temperature: 0.2
+  maxTokens: 4096

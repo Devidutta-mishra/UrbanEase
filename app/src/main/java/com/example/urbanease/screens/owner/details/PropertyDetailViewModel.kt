@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.owner
+package com.example.urbanease.screens.owner.details
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

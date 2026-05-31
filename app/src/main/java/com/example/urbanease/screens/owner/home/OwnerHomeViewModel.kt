@@ -1,10 +1,9 @@
-package com.example.urbanease.screens.owner
+package com.example.urbanease.screens.owner.home
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.urbanease.model.Property
 import com.example.urbanease.repository.AuthRepository
 import com.example.urbanease.repository.PropertyRepository
 import com.google.firebase.firestore.ListenerRegistration

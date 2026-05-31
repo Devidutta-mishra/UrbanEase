@@ -1,4 +1,4 @@
-package com.example.urbanease.screens.owner
+package com.example.urbanease.screens.owner.requests
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,14 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.urbanease.R
 import com.example.urbanease.ui.theme.BrandGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
