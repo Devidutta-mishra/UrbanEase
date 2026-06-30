@@ -5,9 +5,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
@@ -26,6 +28,29 @@ import androidx.compose.ui.unit.sp
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings
 
+@Composable
+fun FieldLabel(label: String, isRequired: Boolean) {
+    Row(
+        modifier = Modifier.padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black
+        )
+        if (isRequired) {
+            Text(
+                text = " *",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFD32F2F)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingInputField(
@@ -35,16 +60,11 @@ fun ListingInputField(
     placeholder: String,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
-    isSingleLine: Boolean = true
+    isSingleLine: Boolean = true,
+    isRequired: Boolean = false
 ) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(
-            text = label,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        FieldLabel(label = label, isRequired = isRequired)
         TextField(
             value = value,
             onValueChange = onValueChange,
@@ -86,6 +106,7 @@ fun AnimatedListingInputField(
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     isSingleLine: Boolean = true,
+    isRequired: Boolean = false,
     index: Int = 0
 ) {
     AnimatedVisibility(
@@ -112,7 +133,8 @@ fun AnimatedListingInputField(
             placeholder = placeholder,
             keyboardType = keyboardType,
             imeAction = imeAction,
-            isSingleLine = isSingleLine
+            isSingleLine = isSingleLine,
+            isRequired = isRequired
         )
     }
 }

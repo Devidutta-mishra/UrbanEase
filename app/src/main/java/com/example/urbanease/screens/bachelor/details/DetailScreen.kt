@@ -67,8 +67,11 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
 import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
+import com.example.urbanease.repository.BookingResult
 import com.example.urbanease.ui.theme.BrandGreen
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -160,20 +163,12 @@ fun DetailScreen(
                             }
                             Button(
                                 onClick = {
-                                    viewModel.bookProperty { success ->
-                                        if (success) {
-                                            Toast.makeText(
-                                                context,
-                                                "Applied Successfully!",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                "Failed to apply",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
+                                    viewModel.bookProperty { result ->
+                                        Toast.makeText(
+                                            context,
+                                            bookingMessage(result),
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -261,13 +256,20 @@ fun DetailScreen(
 
                     if (isApplied) {
                         Spacer(modifier = Modifier.height(24.dp))
-                        OwnerDetailsCard(ownerInfo, property)
+                        OwnerDetailsCard(ownerInfo, property, existingRequest?.status)
                     }
 
                     Spacer(modifier = Modifier.height(28.dp))
                     SectionTitle("Property Details")
                     Spacer(modifier = Modifier.height(14.dp))
                     PropertyInfoGrid(property = property)
+
+                    if (property.hasListingExtras()) {
+                        Spacer(modifier = Modifier.height(28.dp))
+                        SectionTitle("Amenities & Features")
+                        Spacer(modifier = Modifier.height(14.dp))
+                        AmenitiesSection(property = property)
+                    }
 
                     Spacer(modifier = Modifier.height(28.dp))
                     SectionTitle("The Experience")
@@ -619,7 +621,7 @@ fun PropertyInfoCard(
 }
 
 @Composable
-fun OwnerDetailsCard(owner: MUser?, property: Property) {
+fun OwnerDetailsCard(owner: MUser?, property: Property, bookingStatus: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -627,15 +629,29 @@ fun OwnerDetailsCard(owner: MUser?, property: Property) {
         border = BorderStroke(1.dp, Color(0xFFD9E9ED))
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            Text(
-                text = "Owner Contact Information",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF111827)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Owner Contact Information",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111827),
+                    modifier = Modifier.weight(1f)
+                )
+                if (!bookingStatus.isNullOrBlank()) {
+                    ListingBadge(
+                        text = bookingStatus.uppercase(),
+                        containerColor = Color(0xFFE7F2F5),
+                        textColor = Color(0xFF0C7B91)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Your application is submitted. You can now contact the owner directly.",
+                text = "You have already requested this property. You can now contact the owner directly.",
                 fontSize = 14.sp,
                 color = Color(0xFF6B7280),
                 lineHeight = 21.sp
@@ -686,4 +702,88 @@ fun ContactRow(icon: ImageVector, text: String) {
 
 private fun formatRent(rent: Long): String {
     return NumberFormat.getNumberInstance(Locale("en", "IN")).format(rent)
+}
+
+private fun Property.hasListingExtras(): Boolean {
+    return propertyType.isNotBlank() || preferredTenant.isNotBlank() || parking.isNotBlank() ||
+        balcony.isNotBlank() || totalFloors.isNotBlank() || leaseDuration.isNotBlank() ||
+        securityDeposit > 0 || maintenanceCharges > 0 || availableFrom > 0 ||
+        electricityIncluded || waterIncluded || kitchenAvailable || wifiAvailable ||
+        liftAvailable || powerBackup || gatedSociety || petFriendly || smokingAllowed
+}
+
+@Composable
+fun AmenitiesSection(property: Property) {
+    val specs = buildList {
+        if (property.propertyType.isNotBlank()) add("Type" to property.propertyType)
+        if (property.preferredTenant.isNotBlank()) add("Preferred Tenant" to property.preferredTenant)
+        if (property.parking.isNotBlank()) add("Parking" to property.parking)
+        if (property.balcony.isNotBlank()) add("Balcony" to property.balcony)
+        if (property.totalFloors.isNotBlank()) add("Total Floors" to property.totalFloors)
+        if (property.securityDeposit > 0) add("Security Deposit" to "₹${formatRent(property.securityDeposit)}")
+        if (property.maintenanceCharges > 0) add("Maintenance" to "₹${formatRent(property.maintenanceCharges)}")
+        if (property.leaseDuration.isNotBlank()) add("Lease Duration" to property.leaseDuration)
+        if (property.availableFrom > 0) add("Available From" to formatAvailableFrom(property.availableFrom))
+    }
+    val amenities = buildList {
+        if (property.electricityIncluded) add("Electricity")
+        if (property.waterIncluded) add("Water")
+        if (property.kitchenAvailable) add("Kitchen")
+        if (property.wifiAvailable) add("WiFi")
+        if (property.liftAvailable) add("Lift")
+        if (property.powerBackup) add("Power Backup")
+        if (property.gatedSociety) add("Gated Society")
+        if (property.petFriendly) add("Pet Friendly")
+        if (property.smokingAllowed) add("Smoking Allowed")
+    }
+
+    SectionCard {
+        specs.forEach { (label, value) ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(label, color = Color(0xFF6B7280), fontSize = 14.sp)
+                Text(
+                    value,
+                    color = Color(0xFF111827),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+        if (amenities.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "INCLUDED",
+                color = Color(0xFF6B7280),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = amenities.joinToString("   •   "),
+                color = Color(0xFF111827),
+                fontSize = 14.sp,
+                lineHeight = 24.sp
+            )
+        }
+    }
+}
+
+private fun formatAvailableFrom(millis: Long): String {
+    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
+}
+
+private fun bookingMessage(result: BookingResult): String = when (result) {
+    BookingResult.Success -> "Applied Successfully!"
+    BookingResult.AlreadyBooked -> "You have already booked this property"
+    BookingResult.CannotBookOwnProperty -> "You cannot book your own property"
+    BookingResult.PropertyUnavailable -> "This property is no longer available"
+    BookingResult.PropertyNotFound -> "This property no longer exists"
+    BookingResult.NotAuthenticated -> "Please sign in to book this property"
+    is BookingResult.Failure -> "Failed to apply. Please try again"
 }

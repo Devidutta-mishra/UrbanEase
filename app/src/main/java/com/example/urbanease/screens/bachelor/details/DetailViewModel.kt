@@ -5,14 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urbanease.model.Property
-import com.example.urbanease.model.BookingRequest
 import com.example.urbanease.repository.AuthRepository
+import com.example.urbanease.repository.BookingResult
 import com.example.urbanease.repository.PropertyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -50,32 +48,23 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    fun bookProperty(onResult: (Boolean) -> Unit) {
-        val currentProp = uiState.property ?: return
-        val currentUserId = authRepository.currentUserId ?: return
-        if (
-            currentProp.approvalStatus != Property.APPROVAL_APPROVED ||
-            currentProp.propertyStatus != Property.PROPERTY_AVAILABLE
-        ) {
-            onResult(false)
+    fun bookProperty(onResult: (BookingResult) -> Unit) {
+        val currentProp = uiState.property
+        if (currentProp == null) {
+            onResult(BookingResult.PropertyNotFound)
+            return
+        }
+        val currentUserId = authRepository.currentUserId
+        if (currentUserId == null) {
+            onResult(BookingResult.NotAuthenticated)
             return
         }
 
         viewModelScope.launch {
             uiState = uiState.copy(isBooking = true)
-            val bookingId = UUID.randomUUID().toString()
-            val request = BookingRequest(
-                requestId = bookingId,
-                bachelorId = currentUserId,
-                ownerId = currentProp.ownerId,
-                propertyId = currentProp.propertyId,
-                ownerDetailsVisible = true,
-                status = "pending",
-                appliedAt = System.currentTimeMillis()
-            )
-            val success = repository.bookProperty(request)
+            val result = repository.bookProperty(currentProp.propertyId, currentUserId)
             uiState = uiState.copy(isBooking = false)
-            onResult(success)
+            onResult(result)
         }
     }
 }

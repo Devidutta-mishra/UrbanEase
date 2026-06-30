@@ -17,7 +17,7 @@ data class BookingRequest(
 
     @get:PropertyName("status")
     @set:PropertyName("status")
-    var status: String = "pending",
+    var status: String = STATUS_PENDING,
 
     @get:PropertyName("propertyId")
     @set:PropertyName("propertyId")
@@ -43,4 +43,27 @@ data class BookingRequest(
     @get:PropertyName("adminNote")
     @set:PropertyName("adminNote")
     var adminNote: String = ""
-)
+) {
+    companion object {
+        const val STATUS_PENDING = "pending"
+        const val STATUS_CONFIRMED = "confirmed"
+        const val STATUS_REJECTED = "rejected"
+        const val STATUS_CANCELLED = "cancelled"
+        const val STATUS_COMPLETED = "completed"
+
+        val STATUSES = setOf(
+            STATUS_PENDING,
+            STATUS_CONFIRMED,
+            STATUS_REJECTED,
+            STATUS_CANCELLED,
+            STATUS_COMPLETED
+        )
+
+        // Statuses that occupy a property and block a bachelor from re-booking it.
+        val ACTIVE_STATUSES = setOf(
+            STATUS_PENDING,
+            STATUS_CONFIRMED,
+            STATUS_COMPLETED
+        )
+    }
+}

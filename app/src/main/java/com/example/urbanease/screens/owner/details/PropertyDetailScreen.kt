@@ -7,14 +7,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.SquareFoot
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -108,6 +112,9 @@ fun PropertyDetailScreen(
                 PropertyDetailsContent(
                     padding = padding,
                     property = uiState.property,
+                    isUpdatingStatus = uiState.isUpdatingStatus,
+                    onStatusChange = viewModel::updatePropertyStatus,
+                    onSubmitForReview = viewModel::submitForReview,
                     onEdit = {
                         navController.navigate("${UrbanScreens.EditPropertyScreen.name}/${uiState.property.propertyId}")
                     }
@@ -132,6 +139,9 @@ fun PropertyDetailScreen(
 private fun PropertyDetailsContent(
     padding: PaddingValues,
     property: Property,
+    isUpdatingStatus: Boolean,
+    onStatusChange: (String) -> Unit,
+    onSubmitForReview: () -> Unit,
     onEdit: () -> Unit
 ) {
     Column(
@@ -144,6 +154,10 @@ private fun PropertyDetailsContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PropertyHero(property = property)
+
+        VerificationBanner(property = property)
+
+        AdminFeedbackCard(property = property)
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -258,22 +272,160 @@ private fun PropertyDetailsContent(
             }
         }
 
+        if (property.approvalStatus == Property.APPROVAL_APPROVED) {
+            AvailabilityManagerCard(
+                currentStatus = property.propertyStatus,
+                isUpdating = isUpdatingStatus,
+                onStatusChange = onStatusChange
+            )
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
+
+        val canSubmit = property.approvalStatus in Property.OWNER_EDITABLE_STATUSES
+        val canEdit = canSubmit || property.approvalStatus == Property.APPROVAL_APPROVED
+
+        if (canSubmit) {
+            Button(
+                onClick = onSubmitForReview,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                enabled = !isUpdatingStatus,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryTeal,
+                    contentColor = Color.White
+                )
+            ) {
+                if (isUpdatingStatus) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text(
+                        if (property.approvalStatus == Property.APPROVAL_DRAFT) {
+                            "Submit for Verification"
+                        } else {
+                            "Resubmit for Verification"
+                        },
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         Button(
             onClick = onEdit,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
+            enabled = canEdit,
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = BrandGreen,
-                contentColor = Color.White
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFFE0E0E0),
+                disabledContentColor = Color.White.copy(alpha = 0.6f)
             )
         ) {
             Icon(Icons.Default.Edit, contentDescription = null)
             Spacer(modifier = Modifier.size(8.dp))
             Text("Edit Ad", fontWeight = FontWeight.Bold)
+        }
+
+        if (!canEdit) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Editing is locked while the listing is under review.",
+                color = TextGrey,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun AvailabilityManagerCard(
+    currentStatus: String,
+    isUpdating: Boolean,
+    onStatusChange: (String) -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Availability",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Text(
+                text = "You control who can book this listing. Mark it Rented or Sold to stop new booking requests.",
+                color = TextGrey,
+                lineHeight = 20.sp,
+                fontSize = 14.sp
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Property.OWNER_SETTABLE_STATUSES.forEach { status ->
+                    AvailabilityOption(
+                        modifier = Modifier.weight(1f),
+                        label = status.toDisplayLabel(),
+                        selected = status == currentStatus,
+                        enabled = !isUpdating && status != currentStatus,
+                        onClick = { onStatusChange(status) }
+                    )
+                }
+            }
+
+            if (isUpdating) {
+                CircularProgressIndicator(
+                    color = BrandGreen,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AvailabilityOption(
+    modifier: Modifier = Modifier,
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val container = if (selected) BrandGreen else Color(0xFFF1F5F9)
+    val content = if (selected) Color.White else Color.Black
+
+    Surface(
+        modifier = modifier,
+        color = container,
+        shape = RoundedCornerShape(12.dp),
+        enabled = enabled,
+        onClick = onClick
+    ) {
+        Box(
+            modifier = Modifier.padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                color = content,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -421,3 +573,122 @@ private data class StatusBadgeState(
     val backgroundColor: Color,
     val contentColor: Color
 )
+
+@Composable
+private fun VerificationBanner(property: Property) {
+    val state = when (property.approvalStatus) {
+        Property.APPROVAL_DRAFT -> StatusBadgeState(
+            "Draft", Icons.Default.Edit, StatusPending, StatusPendingText
+        )
+        Property.APPROVAL_PENDING, Property.APPROVAL_UNDER_REVIEW -> StatusBadgeState(
+            "Submitted for verification", Icons.Default.HourglassTop, StatusPending, StatusPendingText
+        )
+        Property.APPROVAL_CHANGES_REQUESTED -> StatusBadgeState(
+            "Action required", Icons.Default.Info, StatusPending, StatusPendingText
+        )
+        Property.APPROVAL_APPROVED -> StatusBadgeState(
+            "Approved", Icons.Default.CheckCircle, StatusApproved, StatusApprovedText
+        )
+        Property.APPROVAL_REJECTED -> StatusBadgeState(
+            "Rejected", Icons.Default.Warning, StatusRejected, StatusRejectedText
+        )
+        Property.APPROVAL_HIDDEN -> StatusBadgeState(
+            "Hidden", Icons.Default.VisibilityOff, Color(0xFFF1F5F9), Color.Black
+        )
+        Property.APPROVAL_ARCHIVED -> StatusBadgeState(
+            "Archived", Icons.Default.Archive, Color(0xFFF1F5F9), Color.Black
+        )
+        else -> StatusBadgeState(
+            property.approvalStatus, Icons.Default.Info, Color(0xFFF1F5F9), Color.Black
+        )
+    }
+    val message = when (property.approvalStatus) {
+        Property.APPROVAL_DRAFT -> "Submit this listing when you're ready for admin review."
+        Property.APPROVAL_PENDING, Property.APPROVAL_UNDER_REVIEW ->
+            "Waiting for admin review. Editing is locked until the review is complete."
+        Property.APPROVAL_CHANGES_REQUESTED ->
+            "The admin requested changes. Update the listing and resubmit."
+        Property.APPROVAL_APPROVED -> "This listing is verified and visible to tenants."
+        Property.APPROVAL_REJECTED -> "This listing was rejected. Review the reason below and resubmit."
+        Property.APPROVAL_HIDDEN -> "An admin hid this listing. It is not visible to tenants."
+        Property.APPROVAL_ARCHIVED -> "This listing is archived."
+        else -> ""
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = state.backgroundColor
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                state.icon,
+                contentDescription = null,
+                tint = state.contentColor,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Column {
+                Text(
+                    state.label,
+                    color = state.contentColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+                Text(
+                    message,
+                    color = state.contentColor.copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminFeedbackCard(property: Property) {
+    if (property.adminComment.isBlank() && property.requestedChangeFields.isEmpty()) return
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "Admin Feedback",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            if (property.adminComment.isNotBlank()) {
+                Text(property.adminComment, color = Color.DarkGray, lineHeight = 20.sp)
+            }
+            if (property.requestedChangeFields.isNotEmpty()) {
+                Text(
+                    "Fields to update",
+                    color = TextGrey,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                property.requestedChangeFields.forEach { field ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = StatusRejectedText,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(field, color = Color.Black, fontSize = 14.sp)
+                    }
+                }
+            }
+        }
+    }
+}

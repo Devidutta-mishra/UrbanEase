@@ -51,6 +51,9 @@ import com.example.urbanease.navigation.UrbanScreens
 import com.example.urbanease.ui.animations.AnimationDurations
 import com.example.urbanease.ui.animations.AnimationEasings
 import com.example.urbanease.ui.theme.BrandGreen
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,16 +239,53 @@ fun AdSummaryScreen(navController: NavHostController, viewModel: PostAdViewModel
             ) {
                 SummaryDetailSection(
                     title = "Overview",
-                    items = listOf(
-                        "Title" to ad.title,
-                        "Location" to ad.location,
-                        "Rent" to "₹${ad.rent} / month",
-                        "Configuration" to "${ad.rooms} BHK",
-                        "Bathrooms" to "${ad.bathrooms}",
-                        "Floor" to ad.floorNo,
-                        "Furnishing" to ad.furnishing
-                    )
+                    items = buildList {
+                        add("Title" to ad.title)
+                        add("Location" to ad.location)
+                        if (ad.propertyType.isNotBlank()) add("Property Type" to ad.propertyType)
+                        add("Rent" to "₹${ad.rent} / month")
+                        if (ad.securityDeposit > 0) add("Security Deposit" to "₹${ad.securityDeposit}")
+                        if (ad.maintenanceCharges > 0) add("Maintenance" to "₹${ad.maintenanceCharges}")
+                        add("Configuration" to "${ad.rooms} BHK")
+                        add("Bathrooms" to "${ad.bathrooms}")
+                        if (ad.balcony.isNotBlank()) add("Balcony" to ad.balcony)
+                        if (ad.floorNo.isNotBlank()) add("Floor" to ad.floorNo)
+                        if (ad.totalFloors.isNotBlank()) add("Total Floors" to ad.totalFloors)
+                        add("Furnishing" to ad.furnishing)
+                        if (ad.parking.isNotBlank()) add("Parking" to ad.parking)
+                        if (ad.preferredTenant.isNotBlank()) add("Preferred Tenant" to ad.preferredTenant)
+                        if (ad.availableFrom > 0) add("Available From" to formatSummaryDate(ad.availableFrom))
+                        if (ad.leaseDuration.isNotBlank()) add("Lease Duration" to ad.leaseDuration)
+                    }
                 )
+            }
+
+            val amenities = buildList {
+                if (ad.electricityIncluded) add("Electricity Included")
+                if (ad.waterIncluded) add("Water Included")
+                if (ad.kitchenAvailable) add("Kitchen")
+                if (ad.wifiAvailable) add("WiFi")
+                if (ad.liftAvailable) add("Lift")
+                if (ad.powerBackup) add("Power Backup")
+                if (ad.gatedSociety) add("Gated Society")
+                if (ad.petFriendly) add("Pet Friendly")
+                if (ad.smokingAllowed) add("Smoking Allowed")
+            }
+            if (amenities.isNotEmpty()) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(
+                        animationSpec = tween(
+                            durationMillis = AnimationDurations.NORMAL,
+                            easing = AnimationEasings.DEFAULT
+                        )
+                    )
+                ) {
+                    SummaryDetailSection(
+                        title = "Amenities",
+                        items = listOf("" to amenities.joinToString(", "))
+                    )
+                }
             }
 
             AnimatedVisibility(
@@ -293,6 +333,10 @@ fun AdSummaryScreen(navController: NavHostController, viewModel: PostAdViewModel
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+private fun formatSummaryDate(millis: Long): String {
+    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
 
 @Composable

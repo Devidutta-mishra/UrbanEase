@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.urbanease.model.Property
 import com.example.urbanease.repository.AuthRepository
 import com.example.urbanease.repository.PropertyRepository
 import com.example.urbanease.repository.UserRepository
@@ -68,36 +69,65 @@ class AdminHomeViewModel @Inject constructor(
         }
     }
 
-    fun updateApprovalStatus(propertyId: String, approvalStatus: String) {
+    fun approveProperty(propertyId: String) = moderate(propertyId) {
+        propertyRepository.approveProperty(propertyId)
+        patchModeration(propertyId, Property.APPROVAL_APPROVED, "", emptyList())
+    }
+
+    fun rejectProperty(propertyId: String, reason: String) = moderate(propertyId) {
+        propertyRepository.rejectProperty(propertyId, reason)
+        patchModeration(propertyId, Property.APPROVAL_REJECTED, reason, emptyList())
+    }
+
+    fun requestPropertyChanges(propertyId: String, comment: String, fields: List<String>) =
+        moderate(propertyId) {
+            propertyRepository.requestPropertyChanges(propertyId, comment, fields)
+            patchModeration(propertyId, Property.APPROVAL_CHANGES_REQUESTED, comment, fields)
+        }
+
+    fun archiveProperty(propertyId: String) = moderate(propertyId) {
+        propertyRepository.archiveProperty(propertyId)
+        patchModeration(propertyId, Property.APPROVAL_ARCHIVED, "", emptyList())
+    }
+
+    fun hideProperty(propertyId: String) = moderate(propertyId) {
+        propertyRepository.hideProperty(propertyId)
+    }
+
+    fun unhideProperty(propertyId: String) = moderate(propertyId) {
+        propertyRepository.unhideProperty(propertyId)
+    }
+
+    private fun moderate(propertyId: String, action: suspend () -> Unit) {
         if (!uiState.isAdmin) return
         viewModelScope.launch {
             try {
-                propertyRepository.updateApprovalStatus(propertyId, approvalStatus)
-                uiState = uiState.copy(
-                    properties = uiState.properties.map {
-                        if (it.propertyId == propertyId) it.copy(approvalStatus = approvalStatus) else it
-                    }
-                )
+                action()
             } catch (e: Exception) {
-                Log.e("AdminHomeVM", "Unable to update approval status: ${e.message}", e)
+                Log.e("AdminHomeVM", "Moderation failed for $propertyId: ${e.message}", e)
             }
         }
     }
 
-    fun updatePropertyStatus(propertyId: String, propertyStatus: String) {
-        if (!uiState.isAdmin) return
-        viewModelScope.launch {
-            try {
-                propertyRepository.updatePropertyStatus(propertyId, propertyStatus)
-                uiState = uiState.copy(
-                    properties = uiState.properties.map {
-                        if (it.propertyId == propertyId) it.copy(propertyStatus = propertyStatus) else it
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("AdminHomeVM", "Unable to update property status: ${e.message}", e)
+    private fun patchModeration(
+        propertyId: String,
+        approvalStatus: String,
+        adminComment: String,
+        requestedChangeFields: List<String>
+    ) {
+        uiState = uiState.copy(
+            properties = uiState.properties.map {
+                if (it.propertyId == propertyId) {
+                    it.copy(
+                        approvalStatus = approvalStatus,
+                        adminComment = adminComment,
+                        requestedChangeFields = requestedChangeFields
+                    )
+                } else {
+                    it
+                }
             }
-        }
+        )
     }
 
     fun logout() {

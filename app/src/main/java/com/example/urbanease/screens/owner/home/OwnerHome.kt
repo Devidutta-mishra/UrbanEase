@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -193,8 +194,8 @@ fun PropertyCard(ad: Property, onClick: () -> Unit) {
                         .height(200.dp),
                     contentScale = ContentScale.Crop
                 )
-                VerificationBadge(
-                    isVerified = ad.approvalStatus == Property.APPROVAL_APPROVED,
+                OwnerListingStatusBadge(
+                    approvalStatus = ad.approvalStatus,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(12.dp)
@@ -236,30 +237,49 @@ fun PropertyCard(ad: Property, onClick: () -> Unit) {
     }
 }
 
+private data class ListingStatusVisual(
+    val label: String,
+    val background: Color,
+    val content: Color,
+    val icon: ImageVector
+)
+
 @Composable
-fun VerificationBadge(isVerified: Boolean, modifier: Modifier = Modifier) {
-    val backgroundColor = if (isVerified) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
-    val contentColor = if (isVerified) Color(0xFF2E7D32) else Color(0xFFE65100)
-    val icon = if (isVerified) Icons.Default.Verified else Icons.Default.Pending
-    val label = if (isVerified) "Verified" else "Not verified"
+fun OwnerListingStatusBadge(approvalStatus: String, modifier: Modifier = Modifier) {
+    val visual = when (approvalStatus) {
+        Property.APPROVAL_APPROVED ->
+            ListingStatusVisual("Verified", Color(0xFFE8F5E9), Color(0xFF2E7D32), Icons.Default.Verified)
+        Property.APPROVAL_CHANGES_REQUESTED ->
+            ListingStatusVisual("Action required", Color(0xFFFFEBEE), Color(0xFFC62828), Icons.Default.Warning)
+        Property.APPROVAL_REJECTED ->
+            ListingStatusVisual("Rejected", Color(0xFFFFEBEE), Color(0xFFC62828), Icons.Default.Warning)
+        Property.APPROVAL_PENDING, Property.APPROVAL_UNDER_REVIEW ->
+            ListingStatusVisual("In review", Color(0xFFFFF3E0), Color(0xFFE65100), Icons.Default.Pending)
+        Property.APPROVAL_HIDDEN ->
+            ListingStatusVisual("Hidden", Color(0xFFF1F5F9), Color(0xFF455A64), Icons.Default.Pending)
+        Property.APPROVAL_ARCHIVED ->
+            ListingStatusVisual("Archived", Color(0xFFF1F5F9), Color(0xFF455A64), Icons.Default.Pending)
+        else ->
+            ListingStatusVisual("Draft", Color(0xFFF1F5F9), Color(0xFF455A64), Icons.Default.Pending)
+    }
 
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(50))
-            .background(backgroundColor)
+            .background(visual.background)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
+            imageVector = visual.icon,
+            contentDescription = visual.label,
+            tint = visual.content,
             modifier = Modifier.size(14.dp)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
-            text = label,
-            color = contentColor,
+            text = visual.label,
+            color = visual.content,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )

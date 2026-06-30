@@ -24,8 +24,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
+import com.example.urbanease.model.MUser
 import com.example.urbanease.model.Property
+import com.example.urbanease.model.ReviewEntry
 import com.example.urbanease.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +40,9 @@ fun AdminDetailScreen(
     viewModel: AdminHomeViewModel = hiltViewModel()
 ) {
     val property = viewModel.uiState.properties.find { it.propertyId == propertyId }
+    val owner = property?.let { current ->
+        viewModel.uiState.owners.find { it.userId == current.ownerId }
+    }
 
     Scaffold(
         containerColor = BackgroundLight,
@@ -205,17 +213,35 @@ fun AdminDetailScreen(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                PropertySpecificationsCard(property = property)
+
                 Spacer(modifier = Modifier.height(24.dp))
 
-                AdminModerationControls(
+                VerificationStatusCard(property = property)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OwnerInfoCard(owner = owner, ownerId = property.ownerId)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                AdminModerationPanel(
                     property = property,
-                    onApprovalStatusChange = { approvalStatus ->
-                        viewModel.updateApprovalStatus(property.propertyId, approvalStatus)
+                    onApprove = { viewModel.approveProperty(property.propertyId) },
+                    onReject = { reason -> viewModel.rejectProperty(property.propertyId, reason) },
+                    onRequestChanges = { comment, fields ->
+                        viewModel.requestPropertyChanges(property.propertyId, comment, fields)
                     },
-                    onPropertyStatusChange = { propertyStatus ->
-                        viewModel.updatePropertyStatus(property.propertyId, propertyStatus)
-                    }
+                    onHide = { viewModel.hideProperty(property.propertyId) },
+                    onUnhide = { viewModel.unhideProperty(property.propertyId) },
+                    onArchive = { viewModel.archiveProperty(property.propertyId) }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ReviewHistoryCard(history = property.reviewHistory)
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
@@ -223,12 +249,15 @@ fun AdminDetailScreen(
     }
 }
 
+private enum class ModerationDialogType { REJECT, REQUEST_CHANGES }
+
+private val REQUESTABLE_FIELDS = listOf(
+    "Title", "Rent", "Bedrooms", "Bathrooms", "Furnishing",
+    "Floor", "Description", "Photos", "Location"
+)
+
 @Composable
-private fun AdminModerationControls(
-    property: Property,
-    onApprovalStatusChange: (String) -> Unit,
-    onPropertyStatusChange: (String) -> Unit
-) {
+private fun VerificationStatusCard(property: Property) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -239,120 +268,423 @@ private fun AdminModerationControls(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "Admin Moderation",
+                "Verification",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Status", color = TextGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                ApprovalStatusPill(property.approvalStatus)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Submitted", color = TextGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(formatModerationDate(property.submittedAt), fontSize = 13.sp, color = Color.Black)
+            }
+            if (property.adminComment.isNotBlank()) {
+                Text("Latest note", color = TextGrey, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(property.adminComment, fontSize = 14.sp, color = Color.DarkGray, lineHeight = 20.sp)
+            }
+            if (property.requestedChangeFields.isNotEmpty()) {
+                Text(
+                    "Requested fields: ${property.requestedChangeFields.joinToString()}",
+                    color = StatusPendingText,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApprovalStatusPill(status: String) {
+    val (background, content) = when (status) {
+        Property.APPROVAL_APPROVED -> StatusApproved to StatusApprovedText
+        Property.APPROVAL_REJECTED -> StatusRejected to StatusRejectedText
+        Property.APPROVAL_PENDING,
+        Property.APPROVAL_UNDER_REVIEW,
+        Property.APPROVAL_CHANGES_REQUESTED -> StatusPending to StatusPendingText
+        else -> Color(0xFFF1F5F9) to Color.Black
+    }
+    Surface(color = background, shape = RoundedCornerShape(999.dp)) {
+        Text(
+            status.toDisplayLabel(),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            color = content,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun OwnerInfoCard(owner: MUser?, ownerId: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Owner",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            if (owner != null) {
+                OwnerInfoLine(Icons.Default.Person, owner.displayName.ifBlank { "Unknown" })
+                OwnerInfoLine(Icons.Default.Phone, owner.phoneNumber.ifBlank { "Not provided" })
+                OwnerInfoLine(Icons.Default.Email, owner.email.ifBlank { "Not provided" })
+            } else {
+                Text(
+                    "Owner profile unavailable (ID: $ownerId)",
+                    color = TextGrey,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnerInfoLine(icon: ImageVector, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = PrimaryTeal, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(value, fontSize = 14.sp, color = Color.Black)
+    }
+}
+
+@Composable
+private fun AdminModerationPanel(
+    property: Property,
+    onApprove: () -> Unit,
+    onReject: (String) -> Unit,
+    onRequestChanges: (String, List<String>) -> Unit,
+    onHide: () -> Unit,
+    onUnhide: () -> Unit,
+    onArchive: () -> Unit
+) {
+    var dialog by remember { mutableStateOf<ModerationDialogType?>(null) }
+    val isHidden = property.approvalStatus == Property.APPROVAL_HIDDEN
+    val isArchived = property.approvalStatus == Property.APPROVAL_ARCHIVED
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Moderation",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                "Approval controls public visibility. Availability controls booking lifecycle.",
+                "Approve to publish, request changes with notes, or take the listing off the public feed.",
                 color = TextGrey,
                 fontSize = 13.sp
             )
 
-            StatusRow(label = "Approval", value = property.approvalStatus)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+            Button(
+                onClick = onApprove,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = property.approvalStatus != Property.APPROVAL_APPROVED,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryTeal,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                ModerationButton(
-                    label = "Approve",
-                    selected = property.approvalStatus == Property.APPROVAL_APPROVED,
-                    onClick = { onApprovalStatusChange(Property.APPROVAL_APPROVED) }
-                )
-                ModerationButton(
-                    label = "Review",
-                    selected = property.approvalStatus == Property.APPROVAL_UNDER_REVIEW,
-                    onClick = { onApprovalStatusChange(Property.APPROVAL_UNDER_REVIEW) }
-                )
+                Text("Approve", fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                ModerationButton(
-                    label = "Pending",
-                    selected = property.approvalStatus == Property.APPROVAL_PENDING,
-                    onClick = { onApprovalStatusChange(Property.APPROVAL_PENDING) }
+                ModerationActionButton(
+                    label = "Request Changes",
+                    container = StatusPending,
+                    content = StatusPendingText,
+                    onClick = { dialog = ModerationDialogType.REQUEST_CHANGES }
                 )
-                ModerationButton(
+                ModerationActionButton(
                     label = "Reject",
-                    selected = property.approvalStatus == Property.APPROVAL_REJECTED,
-                    onClick = { onApprovalStatusChange(Property.APPROVAL_REJECTED) }
+                    container = StatusRejected,
+                    content = StatusRejectedText,
+                    onClick = { dialog = ModerationDialogType.REJECT }
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-            StatusRow(label = "Availability", value = property.propertyStatus)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                ModerationButton(
-                    label = "Available",
-                    selected = property.propertyStatus == Property.PROPERTY_AVAILABLE,
-                    onClick = { onPropertyStatusChange(Property.PROPERTY_AVAILABLE) }
+                ModerationActionButton(
+                    label = if (isHidden) "Unhide" else "Hide",
+                    container = Color(0xFFF1F5F9),
+                    content = Color.Black,
+                    onClick = { if (isHidden) onUnhide() else onHide() }
                 )
-                ModerationButton(
-                    label = "Inactive",
-                    selected = property.propertyStatus == Property.PROPERTY_INACTIVE,
-                    onClick = { onPropertyStatusChange(Property.PROPERTY_INACTIVE) }
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                ModerationButton(
-                    label = "Maintenance",
-                    selected = property.propertyStatus == Property.PROPERTY_MAINTENANCE,
-                    onClick = { onPropertyStatusChange(Property.PROPERTY_MAINTENANCE) }
-                )
-                ModerationButton(
-                    label = "Occupied",
-                    selected = property.propertyStatus == Property.PROPERTY_OCCUPIED,
-                    onClick = { onPropertyStatusChange(Property.PROPERTY_OCCUPIED) }
+                ModerationActionButton(
+                    label = "Archive",
+                    container = Color(0xFFF1F5F9),
+                    content = Color.Black,
+                    enabled = !isArchived,
+                    onClick = onArchive
                 )
             }
         }
     }
-}
 
-@Composable
-private fun StatusRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = TextGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(999.dp)) {
-            Text(
-                value.toDisplayLabel(),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                color = PrimaryTeal,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+    when (dialog) {
+        ModerationDialogType.REJECT -> ModerationCommentDialog(
+            title = "Reject listing",
+            label = "Reason for rejection",
+            showFieldSelection = false,
+            onDismiss = { dialog = null },
+            onConfirm = { comment, _ ->
+                onReject(comment)
+                dialog = null
+            }
+        )
+        ModerationDialogType.REQUEST_CHANGES -> ModerationCommentDialog(
+            title = "Request changes",
+            label = "What should the owner fix?",
+            showFieldSelection = true,
+            onDismiss = { dialog = null },
+            onConfirm = { comment, fields ->
+                onRequestChanges(comment, fields)
+                dialog = null
+            }
+        )
+        null -> Unit
     }
 }
 
 @Composable
-private fun RowScope.ModerationButton(
+private fun RowScope.ModerationActionButton(
     label: String,
-    selected: Boolean,
+    container: Color,
+    content: Color,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
         modifier = Modifier.weight(1f),
+        enabled = enabled,
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) PrimaryTeal else Color(0xFFF1F5F9),
-            contentColor = if (selected) Color.White else Color.Black
+            containerColor = container,
+            contentColor = content
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
+}
+
+@Composable
+private fun ModerationCommentDialog(
+    title: String,
+    label: String,
+    showFieldSelection: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String, List<String>) -> Unit
+) {
+    var comment by remember { mutableStateOf("") }
+    val selectedFields = remember { mutableStateListOf<String>() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(comment.trim(), selectedFields.toList()) },
+                enabled = comment.isNotBlank()
+            ) {
+                Text("Confirm", color = PrimaryTeal, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextGrey)
+            }
+        },
+        title = { Text(title, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = { comment = it },
+                    label = { Text(label) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
+                if (showFieldSelection) {
+                    Text(
+                        "Fields needing changes (optional)",
+                        color = TextGrey,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    REQUESTABLE_FIELDS.forEach { field ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = selectedFields.contains(field),
+                                onCheckedChange = { checked ->
+                                    if (checked) selectedFields.add(field) else selectedFields.remove(field)
+                                },
+                                colors = CheckboxDefaults.colors(checkedColor = PrimaryTeal)
+                            )
+                            Text(field, fontSize = 14.sp, color = Color.Black)
+                        }
+                    }
+                }
+            }
+        },
+        containerColor = Color.White
+    )
+}
+
+@Composable
+private fun ReviewHistoryCard(history: List<ReviewEntry>) {
+    if (history.isEmpty()) return
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Review History",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            history.sortedByDescending { it.createdAt }.forEach { entry ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            entry.status.toDisplayLabel(),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(formatModerationDate(entry.createdAt), fontSize = 12.sp, color = TextGrey)
+                    }
+                    if (entry.comment.isNotBlank()) {
+                        Text(entry.comment, fontSize = 13.sp, color = Color.DarkGray)
+                    }
+                    if (entry.requestedFields.isNotEmpty()) {
+                        Text(
+                            "Fields: ${entry.requestedFields.joinToString()}",
+                            fontSize = 12.sp,
+                            color = TextGrey
+                        )
+                    }
+                    Text("by ${entry.actorRole.ifBlank { "system" }}", fontSize = 11.sp, color = TextGrey)
+                }
+                HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 0.5.dp)
+            }
+        }
+    }
+}
+
+private fun formatModerationDate(timestamp: Long): String {
+    if (timestamp <= 0L) return "—"
+    return SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault()).format(Date(timestamp))
+}
+
+@Composable
+private fun PropertySpecificationsCard(property: Property) {
+    val specs = buildList {
+        if (property.propertyType.isNotBlank()) add("Property Type" to property.propertyType)
+        if (property.preferredTenant.isNotBlank()) add("Preferred Tenant" to property.preferredTenant)
+        if (property.parking.isNotBlank()) add("Parking" to property.parking)
+        if (property.balcony.isNotBlank()) add("Balcony" to property.balcony)
+        if (property.floorNo.isNotBlank()) add("Floor" to property.floorNo)
+        if (property.totalFloors.isNotBlank()) add("Total Floors" to property.totalFloors)
+        if (property.securityDeposit > 0) add("Security Deposit" to "₹${property.securityDeposit}")
+        if (property.maintenanceCharges > 0) add("Maintenance" to "₹${property.maintenanceCharges}")
+        if (property.leaseDuration.isNotBlank()) add("Lease Duration" to property.leaseDuration)
+        if (property.availableFrom > 0) add("Available From" to formatListingDate(property.availableFrom))
+    }
+    val amenities = buildList {
+        if (property.electricityIncluded) add("Electricity")
+        if (property.waterIncluded) add("Water")
+        if (property.kitchenAvailable) add("Kitchen")
+        if (property.wifiAvailable) add("WiFi")
+        if (property.liftAvailable) add("Lift")
+        if (property.powerBackup) add("Power Backup")
+        if (property.gatedSociety) add("Gated Society")
+        if (property.petFriendly) add("Pet Friendly")
+        if (property.smokingAllowed) add("Smoking Allowed")
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "Specifications & Amenities",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            if (specs.isEmpty() && amenities.isEmpty()) {
+                Text("No additional details provided.", color = TextGrey, fontSize = 13.sp)
+            } else {
+                specs.forEach { (label, value) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(label, color = TextGrey, fontSize = 14.sp)
+                        Text(
+                            value,
+                            color = Color.Black,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                if (amenities.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("INCLUDED", color = TextGrey, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        amenities.joinToString("   •   "),
+                        color = Color.Black,
+                        fontSize = 14.sp,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatListingDate(millis: Long): String {
+    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
 
 private fun String.toDisplayLabel(): String {

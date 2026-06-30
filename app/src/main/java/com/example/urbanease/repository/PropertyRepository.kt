@@ -4,7 +4,9 @@ import android.util.Log
 import com.example.urbanease.model.BookingRequest
 import com.example.urbanease.model.MUser
 import com.example.urbanease.model.Property
+import com.example.urbanease.model.ReviewEntry
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -137,9 +139,22 @@ class PropertyRepository @Inject constructor() {
     }
 
     suspend fun createProperty(property: Property) {
+        val now = System.currentTimeMillis()
         val newProperty = property.copy(
             approvalStatus = Property.APPROVAL_PENDING,
-            propertyStatus = Property.PROPERTY_AVAILABLE
+            propertyStatus = Property.PROPERTY_AVAILABLE,
+            submittedAt = now,
+            adminComment = "",
+            requestedChangeFields = emptyList(),
+            previousApprovalStatus = "",
+            reviewHistory = listOf(
+                ReviewEntry(
+                    status = Property.APPROVAL_PENDING,
+                    comment = "Submitted for verification",
+                    actorRole = "owner",
+                    createdAt = now
+                )
+            )
         )
         propertiesRef.document(newProperty.propertyId).set(newProperty, SetOptions.merge()).await()
     }
@@ -149,52 +164,60 @@ class PropertyRepository @Inject constructor() {
         val existingProperty = existingSnapshot.toProperty()
             ?: throw IllegalArgumentException("Property not found")
 
-        val hasListingChanges = existingProperty.location != property.location ||
-            existingProperty.title != property.title ||
-            existingProperty.description != property.description ||
-            existingProperty.rent != property.rent ||
-            existingProperty.rooms != property.rooms ||
-            existingProperty.bathrooms != property.bathrooms ||
-            existingProperty.floorNo != property.floorNo ||
-            existingProperty.furnishing != property.furnishing ||
-            existingProperty.imageUrls != property.imageUrls
+        val hasListingChanges = property.listingFingerprint() != existingProperty.listingFingerprint()
 
-        val approvalStatus = if (
-            existingProperty.approvalStatus == Property.APPROVAL_APPROVED && hasListingChanges
-        ) {
-            Property.APPROVAL_PENDING
-        } else {
-            existingProperty.approvalStatus
+        val approvalStatus = when {
+            existingProperty.approvalStatus == Property.APPROVAL_APPROVED && hasListingChanges ->
+                Property.APPROVAL_PENDING
+            existingProperty.approvalStatus == Property.APPROVAL_CHANGES_REQUESTED ->
+                Property.APPROVAL_PENDING
+            existingProperty.approvalStatus == Property.APPROVAL_REJECTED ->
+                Property.APPROVAL_PENDING
+            else -> existingProperty.approvalStatus
         }
 
-        val updates = mapOf(
-            "ownerId" to existingProperty.ownerId,
-            "location" to property.location,
-            "title" to property.title,
-            "description" to property.description,
-            "rent" to property.rent,
-            "rooms" to property.rooms,
-            "bathrooms" to property.bathrooms,
-            "floorNo" to property.floorNo,
-            "furnishing" to property.furnishing,
-            "imageUrls" to property.imageUrls,
-            "approvalStatus" to approvalStatus,
-            "createdAt" to existingProperty.createdAt
+        val resubmitted = approvalStatus == Property.APPROVAL_PENDING &&
+            existingProperty.approvalStatus != Property.APPROVAL_PENDING
+
+        val reviewHistory = if (resubmitted) {
+            existingProperty.reviewHistory + ReviewEntry(
+                status = approvalStatus,
+                comment = "Resubmitted for verification",
+                actorRole = "owner"
+            )
+        } else {
+            existingProperty.reviewHistory
+        }
+
+        val merged = property.copy(
+            propertyId = existingProperty.propertyId,
+            ownerId = existingProperty.ownerId,
+            createdAt = existingProperty.createdAt,
+            propertyStatus = existingProperty.propertyStatus,
+            approvalStatus = approvalStatus,
+            previousApprovalStatus = existingProperty.previousApprovalStatus,
+            adminComment = if (resubmitted) "" else existingProperty.adminComment,
+            requestedChangeFields = if (resubmitted) emptyList() else existingProperty.requestedChangeFields,
+            submittedAt = if (resubmitted) System.currentTimeMillis() else existingProperty.submittedAt,
+            reviewHistory = reviewHistory
         )
-        propertiesRef.document(property.propertyId).set(updates, SetOptions.merge()).await()
-        return existingProperty.copy(
-            location = property.location,
-            title = property.title,
-            description = property.description,
-            rent = property.rent,
-            rooms = property.rooms,
-            bathrooms = property.bathrooms,
-            floorNo = property.floorNo,
-            furnishing = property.furnishing,
-            imageUrls = property.imageUrls,
-            approvalStatus = approvalStatus
-        )
+
+        propertiesRef.document(property.propertyId).set(merged, SetOptions.merge()).await()
+        return merged
     }
+
+    private fun Property.listingFingerprint(): Property = copy(
+        propertyId = "",
+        ownerId = "",
+        approvalStatus = "",
+        propertyStatus = "",
+        previousApprovalStatus = "",
+        adminComment = "",
+        requestedChangeFields = emptyList(),
+        reviewHistory = emptyList(),
+        createdAt = 0L,
+        submittedAt = 0L
+    )
 
     suspend fun updateApprovalStatus(propertyId: String, approvalStatus: String) {
         require(approvalStatus in Property.APPROVAL_STATUSES) {
@@ -213,6 +236,141 @@ class PropertyRepository @Inject constructor() {
             .set(mapOf("propertyStatus" to propertyStatus), SetOptions.merge())
             .await()
     }
+
+    suspend fun updatePropertyStatusAsOwner(
+        propertyId: String,
+        ownerId: String,
+        propertyStatus: String
+    ): Boolean {
+        require(propertyStatus in Property.OWNER_SETTABLE_STATUSES) {
+            "Owners may not set propertyStatus: $propertyStatus"
+        }
+        return try {
+            val property = propertiesRef.document(propertyId).get().await().toProperty()
+                ?: return false
+            if (property.ownerId != ownerId) return false
+            propertiesRef.document(propertyId)
+                .set(mapOf("propertyStatus" to propertyStatus), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error updating property status: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun submitPropertyForReview(propertyId: String, ownerId: String): Boolean {
+        return try {
+            val property = propertiesRef.document(propertyId).get().await().toProperty() ?: return false
+            if (property.ownerId != ownerId) return false
+            if (property.approvalStatus !in Property.OWNER_EDITABLE_STATUSES) return false
+            propertiesRef.document(propertyId).set(
+                mapOf(
+                    "approvalStatus" to Property.APPROVAL_PENDING,
+                    "adminComment" to "",
+                    "requestedChangeFields" to emptyList<String>(),
+                    "submittedAt" to System.currentTimeMillis(),
+                    "reviewHistory" to FieldValue.arrayUnion(
+                        reviewEntryMap(Property.APPROVAL_PENDING, "Submitted for verification", emptyList(), "owner")
+                    )
+                ),
+                SetOptions.merge()
+            ).await()
+            true
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error submitting property: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun approveProperty(propertyId: String) =
+        moderateProperty(propertyId, Property.APPROVAL_APPROVED, "", emptyList())
+
+    suspend fun rejectProperty(propertyId: String, reason: String) =
+        moderateProperty(propertyId, Property.APPROVAL_REJECTED, reason, emptyList())
+
+    suspend fun requestPropertyChanges(propertyId: String, comment: String, requestedFields: List<String>) =
+        moderateProperty(propertyId, Property.APPROVAL_CHANGES_REQUESTED, comment, requestedFields)
+
+    suspend fun archiveProperty(propertyId: String) =
+        moderateProperty(propertyId, Property.APPROVAL_ARCHIVED, "", emptyList())
+
+    suspend fun hideProperty(propertyId: String): Boolean {
+        return try {
+            val property = propertiesRef.document(propertyId).get().await().toProperty() ?: return false
+            if (property.approvalStatus == Property.APPROVAL_HIDDEN) return true
+            propertiesRef.document(propertyId).set(
+                mapOf(
+                    "previousApprovalStatus" to property.approvalStatus,
+                    "approvalStatus" to Property.APPROVAL_HIDDEN,
+                    "reviewHistory" to FieldValue.arrayUnion(
+                        reviewEntryMap(Property.APPROVAL_HIDDEN, "Listing hidden", emptyList(), "admin")
+                    )
+                ),
+                SetOptions.merge()
+            ).await()
+            true
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error hiding property: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun unhideProperty(propertyId: String): Boolean {
+        return try {
+            val property = propertiesRef.document(propertyId).get().await().toProperty() ?: return false
+            val restored = property.previousApprovalStatus.ifBlank { Property.APPROVAL_APPROVED }
+            propertiesRef.document(propertyId).set(
+                mapOf(
+                    "approvalStatus" to restored,
+                    "previousApprovalStatus" to "",
+                    "reviewHistory" to FieldValue.arrayUnion(
+                        reviewEntryMap(restored, "Listing restored", emptyList(), "admin")
+                    )
+                ),
+                SetOptions.merge()
+            ).await()
+            true
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error unhiding property: ${e.message}", e)
+            false
+        }
+    }
+
+    private suspend fun moderateProperty(
+        propertyId: String,
+        approvalStatus: String,
+        comment: String,
+        requestedFields: List<String>
+    ) {
+        require(approvalStatus in Property.APPROVAL_STATUSES) {
+            "Invalid approvalStatus: $approvalStatus"
+        }
+        propertiesRef.document(propertyId).set(
+            mapOf(
+                "approvalStatus" to approvalStatus,
+                "adminComment" to comment,
+                "requestedChangeFields" to requestedFields,
+                "reviewHistory" to FieldValue.arrayUnion(
+                    reviewEntryMap(approvalStatus, comment, requestedFields, "admin")
+                )
+            ),
+            SetOptions.merge()
+        ).await()
+    }
+
+    private fun reviewEntryMap(
+        status: String,
+        comment: String,
+        requestedFields: List<String>,
+        actorRole: String
+    ): Map<String, Any> = mapOf(
+        "status" to status,
+        "comment" to comment,
+        "requestedFields" to requestedFields,
+        "actorRole" to actorRole,
+        "createdAt" to System.currentTimeMillis()
+    )
 
     suspend fun getOwner(ownerId: String): MUser? {
         return getUser(ownerId)
@@ -245,25 +403,65 @@ class PropertyRepository @Inject constructor() {
         awaitClose { registration.remove() }
     }
 
-    suspend fun bookProperty(request: BookingRequest): Boolean {
+    suspend fun bookProperty(propertyId: String, bachelorId: String): BookingResult {
+        if (propertyId.isBlank() || bachelorId.isBlank()) return BookingResult.PropertyNotFound
+
+        val propertyRef = propertiesRef.document(propertyId)
+        val bookingRef = requestsRef.document(bookingId(propertyId, bachelorId))
+
         return try {
-            if (request.requestId.isNotEmpty()) {
-                requestsRef.document(request.requestId).set(request).await()
-            } else {
-                val requestRef = requestsRef.document()
-                requestsRef.document(requestRef.id)
-                    .set(request.apply { requestId = requestRef.id })
-                    .await()
-            }
-            if (request.propertyId.isNotBlank()) {
-                updatePropertyStatus(request.propertyId, Property.PROPERTY_BOOKED)
-            }
-            true
+            firestore.runTransaction { transaction ->
+                val propertySnapshot = transaction.get(propertyRef)
+                val property = propertySnapshot.toProperty()
+                    ?: return@runTransaction BookingResult.PropertyNotFound
+
+                if (property.ownerId == bachelorId) {
+                    return@runTransaction BookingResult.CannotBookOwnProperty
+                }
+                if (
+                    property.approvalStatus != Property.APPROVAL_APPROVED ||
+                    property.propertyStatus !in Property.BOOKABLE_STATUSES
+                ) {
+                    return@runTransaction BookingResult.PropertyUnavailable
+                }
+
+                val existingBooking = transaction.get(bookingRef)
+                if (
+                    existingBooking.exists() &&
+                    existingBooking.getString("status") in BookingRequest.ACTIVE_STATUSES
+                ) {
+                    return@runTransaction BookingResult.AlreadyBooked
+                }
+
+                val request = BookingRequest(
+                    requestId = bookingRef.id,
+                    bachelorId = bachelorId,
+                    ownerId = property.ownerId,
+                    propertyId = propertyId,
+                    status = BookingRequest.STATUS_PENDING,
+                    ownerDetailsVisible = true,
+                    appliedAt = System.currentTimeMillis()
+                )
+                transaction.set(bookingRef, request)
+                BookingResult.Success
+            }.await()
         } catch (e: Exception) {
             Log.e("PropertyRepository", "Error booking property: ${e.message}", e)
-            false
+            BookingResult.Failure(e.message)
         }
     }
+
+    suspend fun updateBookingStatus(requestId: String, status: String) {
+        require(status in BookingRequest.STATUSES) {
+            "Invalid booking status: $status"
+        }
+        requestsRef.document(requestId)
+            .set(mapOf("status" to status), SetOptions.merge())
+            .await()
+    }
+
+    private fun bookingId(propertyId: String, bachelorId: String): String =
+        "${propertyId}_$bachelorId"
 
     fun listenToRequestsForOwner(
         ownerId: String,

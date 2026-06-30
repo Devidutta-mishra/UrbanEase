@@ -38,7 +38,8 @@ fun AnimatedDropdownField(
     selectedValue: String,
     options: List<String>,
     onValueSelected: (String) -> Unit,
-    index: Int
+    index: Int,
+    isRequired: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -60,13 +61,7 @@ fun AnimatedDropdownField(
         )
     ) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            Text(
-                text = label,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            FieldLabel(label = label, isRequired = isRequired)
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
