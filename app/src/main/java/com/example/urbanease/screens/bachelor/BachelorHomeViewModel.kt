@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
 import com.example.urbanease.repository.AuthRepository
@@ -12,6 +13,7 @@ import com.example.urbanease.repository.PropertyRepository
 import com.example.urbanease.repository.UserRepository
 import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class PropertyFilters(
@@ -32,6 +34,10 @@ class BachelorHomeViewModel @Inject constructor(
         private set
 
     private var propertiesListener: ListenerRegistration? = null
+    private var favoritesListener: ListenerRegistration? = null
+
+    val favoriteProperties: List<Property>
+        get() = uiState.properties.filter { it.propertyId in uiState.favoriteIds }
 
     val filteredProperties: List<Property>
         get() {
@@ -44,7 +50,6 @@ class BachelorHomeViewModel @Inject constructor(
                 }
             }
 
-            // Industry level filters
             val f = uiState.filters
             if (f.bhk != null) {
                 result = result.filter { it.rooms == f.bhk }
@@ -65,6 +70,7 @@ class BachelorHomeViewModel @Inject constructor(
     init {
         loadAllProperties()
         loadUserProfile()
+        loadFavorites()
     }
 
     private fun loadUserProfile() {
@@ -72,6 +78,35 @@ class BachelorHomeViewModel @Inject constructor(
         if (currentUserId != null) {
             userRepository.getUser(currentUserId) { profile ->
                 uiState = uiState.copy(userProfile = profile)
+            }
+        }
+    }
+
+    private fun loadFavorites() {
+        val currentUserId = authRepository.currentUserId ?: return
+        favoritesListener?.remove()
+        favoritesListener = repository.listenToFavoriteIds(currentUserId) { ids ->
+            uiState = uiState.copy(favoriteIds = ids)
+        }
+    }
+
+    fun toggleFavorite(propertyId: String) {
+        val currentUserId = authRepository.currentUserId ?: return
+        val shouldFavorite = propertyId !in uiState.favoriteIds
+        // Optimistic update; the listener will reconcile with Firestore.
+        uiState = uiState.copy(
+            favoriteIds = if (shouldFavorite) uiState.favoriteIds + propertyId
+            else uiState.favoriteIds - propertyId
+        )
+        viewModelScope.launch {
+            try {
+                repository.setFavorite(currentUserId, propertyId, shouldFavorite)
+            } catch (e: Exception) {
+                // Revert on failure
+                uiState = uiState.copy(
+                    favoriteIds = if (shouldFavorite) uiState.favoriteIds - propertyId
+                    else uiState.favoriteIds + propertyId
+                )
             }
         }
     }
@@ -109,5 +144,6 @@ class BachelorHomeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         propertiesListener?.remove()
+        favoritesListener?.remove()
     }
 }

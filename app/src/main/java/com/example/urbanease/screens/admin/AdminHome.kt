@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -83,7 +84,7 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
     val uiState = viewModel.uiState
     var selectedFilter by remember { mutableStateOf("All") }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    val filters = listOf("All", "Owners", "Bachelors")
+    val filters = listOf("All", "Pending", "Approved", "Rejected")
 
     Scaffold(
         containerColor = BackgroundLight,
@@ -103,8 +104,8 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Open menu */ }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.Black)
+                    IconButton(onClick = { navController.navigate(UrbanScreens.AdminUsersScreen.name) }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Manage users", tint = Color.Black)
                     }
                 },
                 actions = {
@@ -159,6 +160,32 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                         value = uiState.properties.size.toString(),
                         iconBg = Color(0xFFE8F5E9)
                     )
+                    StatsCard(
+                        icon = Icons.Default.PendingActions,
+                        title = "Pending Review",
+                        value = uiState.properties.count {
+                            it.approvalStatus == Property.APPROVAL_PENDING ||
+                                it.approvalStatus == Property.APPROVAL_UNDER_REVIEW
+                        }.toString(),
+                        iconBg = Color(0xFFFFF3E0)
+                    )
+                }
+            }
+
+            // Management entry points
+            item {
+                Button(
+                    onClick = { navController.navigate(UrbanScreens.AdminUsersScreen.name) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryTeal,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Manage Users & Owners", fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -181,14 +208,39 @@ fun AdminHome(navController: NavHostController, viewModel: AdminHomeViewModel = 
                 }
             }
 
-            // Property List
+            // Property List — acts as the admin review queue, filtered by approval status.
             val filteredProperties = when (selectedFilter) {
-                "Owners" -> uiState.properties 
-                "Bachelors" -> uiState.properties 
+                "Pending" -> uiState.properties.filter {
+                    it.approvalStatus == Property.APPROVAL_PENDING ||
+                        it.approvalStatus == Property.APPROVAL_UNDER_REVIEW
+                }
+                "Approved" -> uiState.properties.filter {
+                    it.approvalStatus == Property.APPROVAL_APPROVED
+                }
+                "Rejected" -> uiState.properties.filter {
+                    it.approvalStatus == Property.APPROVAL_REJECTED
+                }
                 else -> uiState.properties
+            }.sortedByDescending { it.submittedAt }
+
+            if (filteredProperties.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No ${selectedFilter.lowercase()} listings.",
+                            color = TextGrey,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
 
-            items(filteredProperties.take(10)) { ad ->
+            items(filteredProperties.take(20)) { ad ->
                 ListingCard(
                     ad = ad,
                     onClick = {

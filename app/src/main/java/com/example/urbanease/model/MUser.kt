@@ -27,5 +27,9 @@ data class MUser(
     @set:PropertyName("email")
     var email: String = "",
 
+    @get:PropertyName("suspended")
+    @set:PropertyName("suspended")
+    var suspended: Boolean = false,
+
     var id: String? = null
 )

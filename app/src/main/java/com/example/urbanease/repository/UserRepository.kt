@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.urbanease.model.MUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,6 +59,35 @@ class UserRepository @Inject constructor() {
 
     fun updateUserEmail(userId: String, email: String) {
         usersRef.document(userId).update("email", email)
+    }
+
+    // Updates only the editable profile fields, using the Firestore field names
+    // declared on MUser via @PropertyName, and merges so role/email are preserved.
+    fun updateUserProfile(
+        userId: String,
+        displayName: String,
+        phoneNumber: String,
+        avatarUrl: String? = null,
+        onResult: (Boolean) -> Unit
+    ) {
+        val updates = mutableMapOf<String, Any>(
+            "display_name" to displayName,
+            "phone_number" to phoneNumber
+        )
+        if (avatarUrl != null) {
+            updates["avatar_url"] = avatarUrl
+        }
+        usersRef.document(userId)
+            .set(updates, SetOptions.merge())
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    fun setUserSuspended(userId: String, suspended: Boolean, onResult: (Boolean) -> Unit) {
+        usersRef.document(userId)
+            .set(mapOf("suspended" to suspended), SetOptions.merge())
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
     }
 
     fun updateDisplayName(userId: String, displayName: String) {

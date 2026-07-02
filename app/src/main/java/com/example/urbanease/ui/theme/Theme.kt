@@ -1,5 +1,6 @@
 package com.example.urbanease.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -8,7 +9,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = BrandGreen,
@@ -49,16 +53,19 @@ fun UrbanEaseTheme(
         else -> LightColorScheme
     }
     
-    /*
+    // The app's surfaces are always light (white / off-white), so force dark
+    // status-bar and navigation-bar icons. Otherwise, under edge-to-edge the
+    // system uses the device theme and the icons turn white on a light
+    // background, making them invisible.
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = true
+            controller.isAppearanceLightNavigationBars = true
         }
     }
-    */
 
     MaterialTheme(
         colorScheme = colorScheme,

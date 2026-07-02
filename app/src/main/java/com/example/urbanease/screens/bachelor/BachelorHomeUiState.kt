@@ -8,6 +8,7 @@ data class BachelorHomeUiState(
     val userProfile: MUser? = null,
     val searchQuery: String = "",
     val filters: PropertyFilters = PropertyFilters(),
+    val favoriteIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null
 )

@@ -12,20 +12,46 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function signedInAs(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
     function role() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
     function isAdmin() {
-      return isSignedIn() && role() == 'admin';
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && role() == 'admin';
+    }
+
+    // True when the signed-in user already has an enquiry for this property.
+    // Booking documents use the id "<propertyId>_<bachelorId>".
+    function hasEnquired(propertyId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/requests/$(propertyId + '_' + request.auth.uid));
     }
 
     // ---- Users ----------------------------------------------------------
     // Contact details are shared between matched owners/bachelors, so any
-    // signed-in user may read profiles. A user may only write their own doc.
+    // signed-in user may read profiles. A user may write their own profile,
+    // but may NOT promote their own role or change their suspended flag —
+    // only an admin (via the catch-all rule below) can do that.
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && request.auth.uid == userId;
+
+      // Self sign-up: may only create a non-admin, non-suspended account.
+      allow create: if signedInAs(userId)
+        && request.resource.data.role in ['owner', 'bachelor']
+        && request.resource.data.get('suspended', false) == false;
+
+      // Self update: role and suspended must stay exactly as stored.
+      allow update: if signedInAs(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.get('suspended', false) == resource.data.get('suspended', false);
+
+      // Admin moderation of any user is granted by the catch-all rule.
       allow delete: if isAdmin();
     }
 
@@ -36,33 +62,118 @@ service cloud.firestore {
       // Owners create only their own listings.
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
 
-      // Owners may update their own listing; admins may moderate any listing.
-      allow update: if isAdmin() ||
-        (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      // Owners may edit their own listing but cannot transfer ownership or
+      // self-approve: they can only keep the current approval state or send it
+      // back into review (draft / pending). Admins moderate freely.
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && (
+          request.resource.data.get('approvalStatus', 'pending')
+            == resource.data.get('approvalStatus', 'pending')
+          || request.resource.data.get('approvalStatus', 'pending') in ['draft', 'pending']
+        )
+      );
+
+      // An owner may withdraw (delete) their own listing; admins may delete any.
+      allow delete: if isAdmin() || (
+        isSignedIn() && resource.data.ownerId == request.auth.uid
+      );
+    }
+
+    // ---- Booking requests (enquiries) ----------------------------------
+    match /requests/{requestId} {
+      // Visible to the bachelor who applied, the owner of the property, or admin.
+      allow read: if isAdmin() || (
+        isSignedIn() && (
+          resource.data.bachelorId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+      );
+
+      // A bachelor creates an enquiry only for themselves.
+      allow create: if isSignedIn() && request.resource.data.bachelorId == request.auth.uid;
+
+      // Either party (or admin) may update; ownership/bachelor cannot change.
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && (
+          resource.data.bachelorId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+        && request.resource.data.bachelorId == resource.data.bachelorId
+        && request.resource.data.ownerId == resource.data.ownerId
+      );
+
+      // The bachelor who applied, the owner (cleaning up a deleted listing),
+      // or an admin may delete an enquiry.
+      allow delete: if isAdmin() || (
+        isSignedIn() && (
+          resource.data.bachelorId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+      );
+    }
+
+    // ---- Favorites (saved listings) ------------------------------------
+    // Document id is "<userId>_<propertyId>". A user owns only their own.
+    match /favorites/{favoriteId} {
+      allow read: if isAdmin() || (
+        isSignedIn() && resource.data.userId == request.auth.uid
+      );
+
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+
+      allow delete: if isAdmin() || (
+        isSignedIn() && resource.data.userId == request.auth.uid
+      );
+    }
+
+    // ---- Tenant reviews -------------------------------------------------
+    // Document id is "<propertyId>_<reviewerId>". Reviews are public to
+    // signed-in users; only a tenant who has enquired about the property may
+    // write one (one per tenant per property), rated 1..5.
+    match /propertyReviews/{reviewId} {
+      allow read: if isSignedIn();
+
+      allow create, update: if isSignedIn()
+        && request.resource.data.reviewerId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && hasEnquired(request.resource.data.propertyId);
+
+      allow delete: if isAdmin() || (
+        isSignedIn() && resource.data.reviewerId == request.auth.uid
+      );
+    }
+
+    // ---- Property views (analytics, forward-compat) --------------------
+    match /propertyViews/{viewId} {
+      allow read: if isAdmin() || (
+        isSignedIn() && (
+          resource.data.bachelorId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+      );
+
+      allow create: if isSignedIn() && request.resource.data.bachelorId == request.auth.uid;
+
+      allow update: if isSignedIn() && resource.data.bachelorId == request.auth.uid;
 
       allow delete: if isAdmin();
     }
 
-    // ---- Booking requests ----------------------------------------------
-    match /requests/{requestId} {
-      // Visible to the bachelor who applied, the owner of the property, or admin.
-      allow read: if isAdmin() ||
-        (isSignedIn() && (
-          resource.data.bachelorId == request.auth.uid ||
-          resource.data.ownerId == request.auth.uid
-        ));
-
-      // A bachelor creates a request only for themselves.
-      allow create: if isSignedIn() && request.resource.data.bachelorId == request.auth.uid;
-
-      // Either party (or admin) may update status; ownership cannot change.
-      allow update: if isAdmin() ||
-        (isSignedIn() && (
-          resource.data.bachelorId == request.auth.uid ||
-          resource.data.ownerId == request.auth.uid
-        ));
-
-      allow delete: if isAdmin();
+    // ---- Admin catch-all ------------------------------------------------
+    // Admins have full read/write across every collection (moderation,
+    // user suspension, cleanup). Non-admins fall through to the rules above.
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

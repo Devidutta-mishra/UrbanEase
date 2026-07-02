@@ -16,3 +16,4 @@ local.properties
 *.log
 *.md
 !README.md
+firestore.rules

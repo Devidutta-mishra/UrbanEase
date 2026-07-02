@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.HourglassTop
@@ -22,7 +23,10 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -113,11 +117,13 @@ fun PropertyDetailScreen(
                     padding = padding,
                     property = uiState.property,
                     isUpdatingStatus = uiState.isUpdatingStatus,
+                    isDeleting = uiState.isDeleting,
                     onStatusChange = viewModel::updatePropertyStatus,
                     onSubmitForReview = viewModel::submitForReview,
                     onEdit = {
                         navController.navigate("${UrbanScreens.EditPropertyScreen.name}/${uiState.property.propertyId}")
-                    }
+                    },
+                    onDelete = { viewModel.deleteProperty { navController.popBackStack() } }
                 )
             }
 
@@ -140,10 +146,13 @@ private fun PropertyDetailsContent(
     padding: PaddingValues,
     property: Property,
     isUpdatingStatus: Boolean,
+    isDeleting: Boolean,
     onStatusChange: (String) -> Unit,
     onSubmitForReview: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -345,6 +354,55 @@ private fun PropertyDetailsContent(
                 fontSize = 13.sp
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedButton(
+            onClick = { showDeleteDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            enabled = !isDeleting && !isUpdatingStatus,
+            shape = RoundedCornerShape(14.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, StatusRejectedText),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = StatusRejectedText)
+        ) {
+            if (isDeleting) {
+                CircularProgressIndicator(
+                    color = StatusRejectedText,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Icon(Icons.Default.Delete, contentDescription = null)
+                Spacer(modifier = Modifier.size(8.dp))
+                Text("Delete Listing", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete listing?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("This permanently removes the listing and its enquiries. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDelete()
+                }) {
+                    Text("Delete", color = StatusRejectedText, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel", color = TextGrey)
+                }
+            },
+            containerColor = Color.White
+        )
     }
 }
 

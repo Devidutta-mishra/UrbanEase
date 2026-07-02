@@ -2,6 +2,7 @@ package com.example.urbanease.screens.owner.settings
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -131,7 +132,9 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Settings Options
-                        SettingsItem(Icons.Default.Person, "Edit Profile")
+                        SettingsItem(Icons.Default.Person, "Edit Profile") {
+                            navController.navigate(UrbanScreens.EditProfileScreen.name)
+                        }
                         SettingsItem(Icons.Default.Notifications, "Notification Preferences")
                         SettingsItem(Icons.Default.AccountBox, "Payment Methods")
                         SettingsItem(Icons.Default.Info, "Help & Support")
@@ -167,11 +170,18 @@ fun SettingsScreen(
 }
 
 @Composable
-fun SettingsItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String) {
+fun SettingsItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: (() -> Unit)? = null
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {

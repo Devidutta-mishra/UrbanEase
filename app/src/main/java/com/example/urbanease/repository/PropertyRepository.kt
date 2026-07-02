@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.urbanease.model.BookingRequest
 import com.example.urbanease.model.MUser
 import com.example.urbanease.model.Property
+import com.example.urbanease.model.PropertyReview
 import com.example.urbanease.model.ReviewEntry
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -23,6 +24,8 @@ class PropertyRepository @Inject constructor() {
     private val propertiesRef = firestore.collection("properties")
     private val requestsRef = firestore.collection("requests")
     private val usersRef = firestore.collection("users")
+    private val favoritesRef = firestore.collection("favorites")
+    private val reviewsRef = firestore.collection("propertyReviews")
 
     private fun DocumentSnapshot.toProperty(): Property? {
         return toObject(Property::class.java)?.copy(propertyId = id)?.apply {
@@ -503,12 +506,131 @@ class PropertyRepository @Inject constructor() {
         }
     }
 
+    suspend fun getRequestsForBachelor(bachelorId: String): List<BookingRequest> {
+        return try {
+            requestsRef.whereEqualTo("bachelorId", bachelorId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toBookingRequest() }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getPropertiesForOwnerOnce(ownerId: String): List<Property> {
+        return try {
+            propertiesRef.whereEqualTo("ownerId", ownerId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toProperty() }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
 
     suspend fun getRequest(requestId: String): BookingRequest? {
         return try {
             requestsRef.document(requestId).get().await().toBookingRequest()
         } catch (e: Exception) {
             null
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Favorites
+    // ---------------------------------------------------------------------
+
+    private fun favoriteId(userId: String, propertyId: String): String = "${userId}_$propertyId"
+
+    fun listenToFavoriteIds(userId: String, onResult: (Set<String>) -> Unit): ListenerRegistration {
+        return favoritesRef.whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onResult(emptySet())
+                    return@addSnapshotListener
+                }
+                val ids = snapshot?.documents
+                    ?.mapNotNull { it.getString("propertyId") }
+                    ?.toSet()
+                    ?: emptySet()
+                onResult(ids)
+            }
+    }
+
+    suspend fun setFavorite(userId: String, propertyId: String, isFavorite: Boolean) {
+        if (userId.isBlank() || propertyId.isBlank()) return
+        val doc = favoritesRef.document(favoriteId(userId, propertyId))
+        if (isFavorite) {
+            doc.set(
+                mapOf(
+                    "userId" to userId,
+                    "propertyId" to propertyId,
+                    "createdAt" to System.currentTimeMillis()
+                )
+            ).await()
+        } else {
+            doc.delete().await()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Tenant reviews
+    // ---------------------------------------------------------------------
+
+    private fun DocumentSnapshot.toReview(): PropertyReview? {
+        return toObject(PropertyReview::class.java)?.apply {
+            if (reviewId.isBlank()) reviewId = id
+        }
+    }
+
+    fun listenToReviewsForProperty(
+        propertyId: String,
+        onResult: (List<PropertyReview>) -> Unit
+    ): ListenerRegistration {
+        return reviewsRef.whereEqualTo("propertyId", propertyId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("PropertyRepository", "Reviews listener failed: ${error.message}", error)
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+                val reviews = snapshot?.documents
+                    ?.mapNotNull { it.toReview() }
+                    ?.sortedByDescending { it.createdAt }
+                    ?: emptyList()
+                onResult(reviews)
+            }
+    }
+
+    suspend fun submitReview(review: PropertyReview) {
+        // One review per reviewer per property; a re-submit overwrites the old one.
+        val docId = "${review.propertyId}_${review.reviewerId}"
+        val toSave = review.copy(reviewId = docId, createdAt = System.currentTimeMillis())
+        reviewsRef.document(docId).set(toSave).await()
+    }
+
+    // ---------------------------------------------------------------------
+    // Listing deletion
+    // ---------------------------------------------------------------------
+
+    suspend fun deleteProperty(propertyId: String, ownerId: String): Boolean {
+        return try {
+            val property = propertiesRef.document(propertyId).get().await().toProperty() ?: return false
+            if (property.ownerId != ownerId) return false
+
+            // Best-effort cleanup of related enquiries so they don't dangle.
+            val relatedRequests = requestsRef.whereEqualTo("propertyId", propertyId).get().await()
+            for (doc in relatedRequests.documents) {
+                doc.reference.delete()
+            }
+            propertiesRef.document(propertyId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error deleting property: ${e.message}", e)
+            false
         }
     }
 }

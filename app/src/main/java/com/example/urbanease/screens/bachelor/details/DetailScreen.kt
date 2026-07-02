@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -48,9 +50,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -65,6 +71,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.urbanease.R
+import com.example.urbanease.components.FullScreenImageViewer
 import com.example.urbanease.model.Property
 import com.example.urbanease.model.MUser
 import com.example.urbanease.repository.BookingResult
@@ -107,6 +114,15 @@ fun DetailScreen(
         val isApplied = existingRequest != null
         val canBook = (property.approvalStatus == Property.APPROVAL_APPROVED) &&
             (property.propertyStatus == Property.PROPERTY_AVAILABLE)
+        var galleryIndex by remember { mutableStateOf<Int?>(null) }
+
+        galleryIndex?.let { index ->
+            FullScreenImageViewer(
+                images = property.imageUrls,
+                initialIndex = index,
+                onDismiss = { galleryIndex = null }
+            )
+        }
 
         Scaffold(
             topBar = {
@@ -207,7 +223,10 @@ fun DetailScreen(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                PropertyImageGallery(property = property)
+                PropertyImageGallery(
+                    property = property,
+                    onImageClick = { index -> galleryIndex = index }
+                )
 
                 Column(
                     modifier = Modifier
@@ -338,6 +357,26 @@ fun DetailScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(28.dp))
+                    SectionTitle("Ratings & Reviews")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ReviewsSection(
+                        uiState = uiState,
+                        canReview = isApplied,
+                        existingRating = viewModel.myReview?.rating ?: 0,
+                        existingComment = viewModel.myReview?.comment ?: "",
+                        onSubmit = { rating, comment ->
+                            viewModel.submitReview(rating, comment) { success ->
+                                Toast.makeText(
+                                    context,
+                                    if (success) "Review submitted"
+                                    else "Couldn't submit review. Check your connection or permissions.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    )
+
                     Spacer(modifier = Modifier.height(if (isApplied) 36.dp else 120.dp))
                 }
             }
@@ -346,7 +385,168 @@ fun DetailScreen(
 }
 
 @Composable
-fun PropertyImageGallery(property: Property) {
+private fun StarRow(rating: Int, size: Int = 16) {
+    Row {
+        repeat(5) { i ->
+            Icon(
+                imageVector = if (i < rating) Icons.Default.Star else Icons.Default.StarBorder,
+                contentDescription = null,
+                tint = Color(0xFFFFB300),
+                modifier = Modifier.size(size.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewsSection(
+    uiState: com.example.urbanease.screens.bachelor.details.DetailUiState,
+    canReview: Boolean,
+    existingRating: Int,
+    existingComment: String,
+    onSubmit: (Int, String) -> Unit
+) {
+    SectionCard {
+        if (uiState.reviewCount == 0) {
+            Text(
+                text = "No reviews yet.",
+                color = Color(0xFF6B7280),
+                fontSize = 14.sp
+            )
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = String.format(Locale.getDefault(), "%.1f", uiState.averageRating),
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF111827)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    StarRow(rating = uiState.averageRating.toInt(), size = 18)
+                    Text(
+                        text = "${uiState.reviewCount} review${if (uiState.reviewCount == 1) "" else "s"}",
+                        color = Color(0xFF6B7280),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            uiState.reviews.forEach { review ->
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            review.reviewerName.ifBlank { "Tenant" },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color(0xFF111827)
+                        )
+                        StarRow(rating = review.rating, size = 14)
+                    }
+                    if (review.comment.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(review.comment, color = Color(0xFF1F2937), fontSize = 14.sp, lineHeight = 20.sp)
+                    }
+                }
+            }
+        }
+
+        if (canReview) {
+            Spacer(modifier = Modifier.height(16.dp))
+            ReviewComposer(
+                initialRating = existingRating,
+                initialComment = existingComment,
+                isSubmitting = uiState.isSubmittingReview,
+                onSubmit = onSubmit
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewComposer(
+    initialRating: Int,
+    initialComment: String,
+    isSubmitting: Boolean,
+    onSubmit: (Int, String) -> Unit
+) {
+    var rating by remember(initialRating) { mutableStateOf(initialRating) }
+    var comment by remember(initialComment) { mutableStateOf(initialComment) }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFFF7F8FB),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEF1F4))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                if (initialRating > 0) "Update your review" else "Write a review",
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = Color(0xFF111827)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row {
+                repeat(5) { i ->
+                    IconButton(onClick = { rating = i + 1 }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = if (i < rating) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = "Rate ${i + 1}",
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.material3.OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                placeholder = { Text("Share your experience (optional)", color = Color(0xFF9CA3AF)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color(0xFF111827),
+                    unfocusedTextColor = Color(0xFF111827),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = Color(0xFF0C7B91),
+                    unfocusedBorderColor = Color(0xFFD1D5DB),
+                    cursorColor = Color(0xFF0C7B91)
+                )
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { onSubmit(rating, comment) },
+                enabled = !isSubmitting && rating >= 1,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF0C7B91),
+                    contentColor = Color.White
+                )
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text("Submit Review", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PropertyImageGallery(property: Property, onImageClick: (Int) -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -358,7 +558,8 @@ fun PropertyImageGallery(property: Property) {
             modifier = Modifier
                 .weight(1.5f)
                 .aspectRatio(0.92f),
-            shape = RoundedCornerShape(28.dp)
+            shape = RoundedCornerShape(28.dp),
+            onClick = { onImageClick(0) }
         )
 
         Column(
@@ -370,7 +571,8 @@ fun PropertyImageGallery(property: Property) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
-                shape = RoundedCornerShape(15.dp)
+                shape = RoundedCornerShape(15.dp),
+                onClick = { onImageClick(if (property.imageUrls.size > 1) 1 else 0) }
             )
             Box {
                 PropertyImage(
@@ -378,7 +580,8 @@ fun PropertyImageGallery(property: Property) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
-                    shape = RoundedCornerShape(15.dp)
+                    shape = RoundedCornerShape(15.dp),
+                    onClick = { onImageClick(if (property.imageUrls.size > 2) 2 else 0) }
                 )
                 if (property.imageUrls.size > 3) {
                     Surface(
@@ -404,10 +607,11 @@ fun PropertyImageGallery(property: Property) {
 fun PropertyImage(
     imageUrl: String?,
     modifier: Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(24.dp)
+    shape: RoundedCornerShape = RoundedCornerShape(24.dp),
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
-        modifier = modifier,
+        modifier = if (onClick != null) modifier.clickable { onClick() } else modifier,
         shape = shape,
         color = Color(0xFFEDEFF2)
     ) {
@@ -643,7 +847,7 @@ fun OwnerDetailsCard(owner: MUser?, property: Property, bookingStatus: String?) 
                 )
                 if (!bookingStatus.isNullOrBlank()) {
                     ListingBadge(
-                        text = bookingStatus.uppercase(),
+                        text = "ENQUIRED",
                         containerColor = Color(0xFFE7F2F5),
                         textColor = Color(0xFF0C7B91)
                     )

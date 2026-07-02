@@ -270,7 +270,7 @@ private fun BookingRequestCard(
                     )
                 }
                 StatusPill(
-                    label = requestDetail.request.status.replaceFirstChar { it.uppercase() },
+                    label = "Enquiry",
                     containerColor = Color(0xFFE7F2F5),
                     textColor = Color(0xFF0C7B91)
                 )

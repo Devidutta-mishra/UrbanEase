@@ -148,6 +148,14 @@ class LoginScreenViewModel @Inject constructor(
                     userRepository.getUser(userId) { user ->
                         finishLoading()
                         if (user != null) {
+                            if (user.suspended) {
+                                authRepository.logout()
+                                uiState = uiState.copy(
+                                    error = "Your account has been suspended. Please contact support."
+                                )
+                                Log.d("Login", "Suspended account blocked: $userId")
+                                return@getUser
+                            }
                             userRepository.updateUserEmail(userId, cleanEmail)
                             val role = user.role.ifBlank { "unknown" }
                             Log.d("Login", "Role: $role")

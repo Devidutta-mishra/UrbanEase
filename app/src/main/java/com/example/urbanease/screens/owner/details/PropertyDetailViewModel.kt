@@ -67,6 +67,29 @@ class PropertyDetailViewModel @Inject constructor(
         }
     }
 
+    fun deleteProperty(onDeleted: () -> Unit) {
+        val property = uiState.property ?: return
+        val ownerId = authRepository.currentUserId
+        if (ownerId == null) {
+            uiState = uiState.copy(error = "You are not authorised to delete this property")
+            return
+        }
+
+        uiState = uiState.copy(isDeleting = true, error = null)
+        viewModelScope.launch {
+            val success = repository.deleteProperty(property.propertyId, ownerId)
+            if (success) {
+                uiState = uiState.copy(isDeleting = false)
+                onDeleted()
+            } else {
+                uiState = uiState.copy(
+                    isDeleting = false,
+                    error = "Unable to delete this listing"
+                )
+            }
+        }
+    }
+
     fun submitForReview() {
         val property = uiState.property ?: return
         val ownerId = authRepository.currentUserId

@@ -159,7 +159,7 @@ fun RequestDetailScreen(
                 }
                 
                 Spacer(modifier = Modifier.height(48.dp))
-                
+
                 Text(
                     "You can contact this applicant directly using the information provided above.",
                     color = Color.Gray,

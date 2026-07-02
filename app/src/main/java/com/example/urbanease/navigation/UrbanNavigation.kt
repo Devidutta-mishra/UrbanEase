@@ -12,6 +12,8 @@ import androidx.navigation.navArgument
 import com.example.urbanease.screens.owner.add.PostAdViewModel
 import com.example.urbanease.screens.admin.AdminDetailScreen
 import com.example.urbanease.screens.admin.AdminHome
+import com.example.urbanease.screens.admin.users.AdminUsersScreen
+import com.example.urbanease.screens.admin.users.AdminUserDetailScreen
 import com.example.urbanease.screens.bachelor.BachelorHome
 import com.example.urbanease.screens.bachelor.details.DetailScreen
 import com.example.urbanease.screens.login.LoginScreen
@@ -25,6 +27,7 @@ import com.example.urbanease.screens.owner.add.LocationScreen
 import com.example.urbanease.screens.owner.add.PhotoScreen
 import com.example.urbanease.screens.owner.add.RentScreen
 import com.example.urbanease.screens.owner.edit.EditPropertyScreen
+import com.example.urbanease.screens.profile.EditProfileScreen
 import com.example.urbanease.screens.splash.SplashScreen
 import com.example.urbanease.ui.animations.ScreenTransitions
 
@@ -81,6 +84,24 @@ fun UrbanNavigation(navController: NavHostController) {
         }
 
         composable(
+            route = UrbanScreens.AdminUsersScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
+            AdminUsersScreen(navController = navController)
+        }
+
+        composable(
+            route = "${UrbanScreens.AdminUserDetailScreen.name}/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType }),
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            AdminUserDetailScreen(navController = navController, userId = userId)
+        }
+
+        composable(
             route = UrbanScreens.RequestsScreen.name,
             enterTransition = { ScreenTransitions.slideInLeftTransition() },
             exitTransition = { ScreenTransitions.slideOutLeftTransition() }
@@ -124,6 +145,14 @@ fun UrbanNavigation(navController: NavHostController) {
             exitTransition = { ScreenTransitions.slideOutLeftTransition() }
         ) {
             SettingsScreen(navController = navController)
+        }
+
+        composable(
+            route = UrbanScreens.EditProfileScreen.name,
+            enterTransition = { ScreenTransitions.slideInLeftTransition() },
+            exitTransition = { ScreenTransitions.slideOutLeftTransition() }
+        ) {
+            EditProfileScreen(navController = navController)
         }
 
         composable(

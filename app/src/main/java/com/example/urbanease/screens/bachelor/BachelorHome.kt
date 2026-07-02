@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -101,8 +102,9 @@ fun BachelorHome(
     ) { paddingValues ->
         when (currentTab) {
             0 -> BachelorHomeScreen(navController, viewModel, paddingValues)
-            1 -> ApplicationsScreen(navController, paddingValues)
-            2 -> BachelorProfileScreen(navController, paddingValues, viewModel)
+            1 -> SavedScreen(navController, viewModel, paddingValues)
+            2 -> ApplicationsScreen(navController, paddingValues)
+            3 -> BachelorProfileScreen(navController, paddingValues, viewModel)
         }
     }
 }
@@ -204,9 +206,14 @@ fun BachelorHomeScreen(
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     items(properties) { ad ->
-                        BachelorPropertyCard(ad) {
-                            navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.propertyId}")
-                        }
+                        BachelorPropertyCard(
+                            ad = ad,
+                            isFavorite = ad.propertyId in uiState.favoriteIds,
+                            onToggleFavorite = { viewModel.toggleFavorite(ad.propertyId) },
+                            onClick = {
+                                navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.propertyId}")
+                            }
+                        )
                     }
                 }
             }
@@ -531,7 +538,12 @@ fun FilterChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun BachelorPropertyCard(ad: Property, onClick: () -> Unit) {
+fun BachelorPropertyCard(
+    ad: Property,
+    isFavorite: Boolean = false,
+    onToggleFavorite: () -> Unit = {},
+    onClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -563,13 +575,14 @@ fun BachelorPropertyCard(ad: Property, onClick: () -> Unit) {
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.9f))
-                        .align(Alignment.TopEnd),
+                        .align(Alignment.TopEnd)
+                        .clickable { onToggleFavorite() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = BrandGreen,
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Remove from saved" else "Save",
+                        tint = if (isFavorite) Color(0xFFE53935) else BrandGreen,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -672,26 +685,13 @@ fun InfoBadge(icon: ImageVector, text: String) {
 }
 
 @Composable
-fun ApplicationsScreen(
+fun SavedScreen(
     navController: NavHostController,
-    paddingValues: PaddingValues,
-    viewModel: BachelorBookingsViewModel = hiltViewModel()
+    viewModel: BachelorHomeViewModel,
+    paddingValues: PaddingValues
 ) {
     val uiState = viewModel.uiState
-    val allBookings = uiState.bookings
-    val isLoading = uiState.isLoading
-
-    var selectedStatusTab by remember { mutableStateOf(0) }
-
-    // Filter bookings by status
-    val filteredBookings = when (selectedStatusTab) {
-        0 -> allBookings.filter { it.request.status == "pending" }
-        1 -> allBookings.filter { it.request.status == "approved" }
-        2 -> allBookings.filter { it.request.status == "rejected" }
-        else -> allBookings
-    }
-
-    val statusTabs = listOf("Pending", "Approved", "Rejected")
+    val saved = viewModel.favoriteProperties
 
     Column(
         modifier = Modifier
@@ -701,62 +701,80 @@ fun ApplicationsScreen(
             .padding(paddingValues)
     ) {
         Text(
-            text = "My Applications",
+            text = "Saved Properties",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1A1D52),
             modifier = Modifier.padding(24.dp)
         )
 
-        // Status Filter Tabs
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            statusTabs.forEachIndexed { index, status ->
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { selectedStatusTab = index },
-                    color = if (selectedStatusTab == index) BrandGreen else Color.Transparent,
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = status,
-                            color = if (selectedStatusTab == index) Color.White else Color.Gray,
-                            fontWeight = if (selectedStatusTab == index) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 13.sp
-                        )
-                    }
+        if (saved.isEmpty()) {
+            EmptyState(
+                icon = Icons.Default.FavoriteBorder,
+                title = "No saved properties",
+                description = "Tap the heart on any property to save it here for quick access."
+            )
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                items(saved) { ad ->
+                    BachelorPropertyCard(
+                        ad = ad,
+                        isFavorite = ad.propertyId in uiState.favoriteIds,
+                        onToggleFavorite = { viewModel.toggleFavorite(ad.propertyId) },
+                        onClick = {
+                            navController.navigate("${UrbanScreens.DetailScreen.name}/${ad.propertyId}")
+                        }
+                    )
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
+@Composable
+fun ApplicationsScreen(
+    navController: NavHostController,
+    paddingValues: PaddingValues,
+    viewModel: BachelorBookingsViewModel = hiltViewModel()
+) {
+    val uiState = viewModel.uiState
+    val bookings = uiState.bookings
+    val isLoading = uiState.isLoading
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+            .statusBarsPadding()
+            .padding(paddingValues)
+    ) {
+        Text(
+            text = "My Enquiries",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF1A1D52),
+            modifier = Modifier.padding(24.dp)
+        )
 
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandGreen)
             }
-        } else if (filteredBookings.isEmpty()) {
+        } else if (bookings.isEmpty()) {
             EmptyState(
                 icon = Icons.AutoMirrored.Filled.List,
-                title = "No ${statusTabs[selectedStatusTab].lowercase()} applications",
-                description = "Your ${statusTabs[selectedStatusTab].lowercase()} applications will appear here."
+                title = "No enquiries yet",
+                description = "Properties you enquire about will appear here with the owner's contact details."
             )
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(filteredBookings) { booking ->
+                items(bookings) { booking ->
                     BookingItem(booking) {
                         navController.navigate("${UrbanScreens.DetailScreen.name}/${booking.request.propertyId}")
                     }
@@ -768,19 +786,9 @@ fun ApplicationsScreen(
 
 @Composable
 fun BookingItem(booking: BachelorBookingUIModel, onCardClick: () -> Unit) {
-    val statusColor = when (booking.request.status) {
-        "pending" -> Color(0xFFFFA500) // Orange for pending
-        "approved" -> BrandGreen       // Green for approved
-        "rejected" -> Color(0xFFFF4444) // Red for rejected
-        else -> BrandGreen
-    }
-
-    val statusLabel = when (booking.request.status) {
-        "pending" -> "PENDING"
-        "approved" -> "APPROVED"
-        "rejected" -> "REJECTED"
-        else -> "APPLIED"
-    }
+    // Bookings are enquiries — there is no owner approval step, so a single badge.
+    val statusColor = BrandGreen
+    val statusLabel = "ENQUIRED"
 
     Surface(
         modifier = Modifier
@@ -1030,6 +1038,39 @@ fun BachelorProfileScreen(navController: NavHostController, paddingValues: Paddi
                 .clip(RoundedCornerShape(24.dp))
                 .background(Color.White)
         ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { navController.navigate(UrbanScreens.EditProfileScreen.name) },
+                color = Color.White
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = BrandGreen.copy(alpha = 0.12f)
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            null,
+                            modifier = Modifier.padding(8.dp),
+                            tint = BrandGreen
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        "Edit Profile",
+                        color = Color(0xFF2C3E50),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
             ProfileMenuItem(Icons.Default.Person, "Personal Information", userProfile?.displayName ?: "N/A")
             ProfileMenuItem(Icons.Default.Email, "Email Address", userProfile?.email ?: "N/A")
             ProfileMenuItem(Icons.Default.Call, "Phone Number", userProfile?.phoneNumber ?: "N/A")
@@ -1171,8 +1212,9 @@ fun BottomNavigationBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
 
         val items = listOf(
             Triple("Home", Icons.Default.Home, 0),
-            Triple("Applications", Icons.AutoMirrored.Filled.List, 1),
-            Triple("Profile", Icons.Default.Person, 2)
+            Triple("Saved", Icons.Default.Favorite, 1),
+            Triple("Applications", Icons.AutoMirrored.Filled.List, 2),
+            Triple("Profile", Icons.Default.Person, 3)
         )
 
         items.forEach { (label, icon, index) ->
